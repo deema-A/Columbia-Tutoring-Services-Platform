@@ -160,10 +160,11 @@ def index():
 # Notice that the function name is another() rather than index()
 # The functions for each app.route need to have different names
 #
-@app.route('/another')
+'''
+@app.route('/another')s
 def another():
   return render_template("another.html")
-
+'''
 
 # Example of adding new data to the database
 '''
@@ -172,13 +173,12 @@ def add():
   name = request.form['name']
   g.conn.execute('INSERT INTO test(name) VALUES (%s)', name)
   return redirect('/')
-'''
 
 @app.route('/login')
 def login():
     abort(401)
     this_is_never_executed()
-
+'''
 
 if __name__ == "__main__":
   import click
