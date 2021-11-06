@@ -16,8 +16,6 @@ from flask import Flask, request, render_template, g, redirect, Response
 
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
-# This is just a test Haojun Edit it! Deema don't Edit it! DeemaTryy again!
-
 #
 # The following is a dummy URI that does not connect to a valid database. You will need to modify it to connect to your Part 2 database in order to use the data.
 #
@@ -29,7 +27,7 @@ app = Flask(__name__, template_folder=tmpl_dir)
 #
 #     DATABASEURI = "postgresql://gravano:foobar@34.74.246.148/proj1part2"
 #
-DATABASEURI = "postgresql://user:password@34.74.246.148/proj1part2"
+DATABASEURI = "postgresql://daa2182:daa2182@34.74.246.148/proj1part2"
 
 
 #
@@ -40,12 +38,13 @@ engine = create_engine(DATABASEURI)
 #
 # Example of running queries in your database
 # Note that this will probably not work if you already have a table named 'test' in your database, containing meaningful data. This is only an example showing you how to run queries in your database using SQLAlchemy.
-#
-engine.execute("""CREATE TABLE IF NOT EXISTS test (
-  id serial,
-  name text
-);""")
-engine.execute("""INSERT INTO test(name) VALUES ('grace hopper'), ('alan turing'), ('ada lovelace');""")
+
+#Commented 5 lines:
+#engine.execute("""CREATE TABLE IF NOT EXISTS test (
+#  id serial,
+#  name text
+#);""")
+#engine.execute("""INSERT INTO test(name) VALUES ('grace hopper'), ('alan turing'), ('ada lovelace');""")
 
 
 @app.before_request
@@ -109,10 +108,13 @@ def index():
   #
   # example of a database query
   #
-  cursor = g.conn.execute("SELECT name FROM test")
-  names = []
+  cursor = g.conn.execute("SELECT Username, Password FROM Users")
+  Username = []
+  Password = []
   for result in cursor:
-    names.append(result['name'])  # can also be accessed using result[0]
+    print(result[0]) #use index insstead of attributes names
+    Username.append(result[0])  # can also be accessed using result[0]s
+    Password.append(result[1])
   cursor.close()
 
   #
@@ -141,13 +143,13 @@ def index():
   #     <div>{{n}}</div>
   #     {% endfor %}
   #
-  context = dict(data = names)
+  context = {'Username':Username,'Password':Password}
 
 
-  #
+  #Our Instructions:
   # render_template looks in the templates/ folder for files.
   # for example, the below file reads template/index.html
-  #
+  # Dictionary pass with prefix **
   return render_template("index.html", **context)
 
 #
@@ -164,12 +166,13 @@ def another():
 
 
 # Example of adding new data to the database
+'''
 @app.route('/add', methods=['POST'])
 def add():
   name = request.form['name']
   g.conn.execute('INSERT INTO test(name) VALUES (%s)', name)
   return redirect('/')
-
+'''
 
 @app.route('/login')
 def login():
