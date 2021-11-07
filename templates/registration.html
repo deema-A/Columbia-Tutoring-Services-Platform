@@ -1,0 +1,76 @@
+<html>
+  <style>
+    body{ 
+      font-size: 15pt;
+      font-family: arial;
+    }
+    div{
+      text-align: center;
+      margin: 10px;
+    }
+    .messageBox{
+        border-style: solid;
+        border-color: red;
+    }
+  </style>
+
+<body>
+<div class="messageBox">
+    {{message}}
+</div>
+<!-- Use required to satisfy not null condition in SQL schema -->
+<!-- registrationCheck page is just used for checking and inserting valid inputs into database and redirect to the user Dashboard -->
+<form method="POST" action="/registrationCheck">
+  <div>
+    <label for="Username">Username:</label>
+    <input type="text" id="Username" name="usernameInput" maxlength="20" required>
+  </div>
+  <div>
+    <label for="Password">Password:</label>
+    <input type="password" id="Password" name="passwordInput" maxlength="60" required>
+  </div>
+  <div>
+    <label for="RealName">Real Name:</label>
+    <input type="text" id="RealName" name="realnameInput" maxlength="80" required>
+  </div>
+  <div>
+    <label for="Email">Email:</label>
+    <input type="email" id="Email" name="emailInput" maxlength="120" required>
+  </div>
+  <div>
+    <label for="PhoneNumber">Phone Number:</label>
+    <input type="text" id="PhoneNumber" name="phonenumberInput" maxlength="20" required>
+  </div>
+  <div>
+    <label for="RoutingNumber">Routing Number:</label>
+    <input type="text" id="RoutingNumber" name="routingnumberInput" maxlength="9" required>
+  </div>
+  <div>
+    <label for="BankAccount">Back Account:</label>
+    <input type="text" id="BankAccount" name="bankaccountInput" maxlength="20" required>
+  </div>
+  <div>
+    <label for="AccountType">Account Type:</label>
+    <!-- Checked to guaranttee not null in the SQL schema -->
+    <input type="radio" id="AccountType" name="accounttypeInput" value="Checking" checked> Checking
+    <br>
+    <input type="radio" id="AccountType" name="accounttypeInput" value="Saving"> Saving
+  </div>
+  <div>
+    <label for="GPA">GPA:</label>
+    <input type="number" step="0.01" id="GPA" name="gpaInput" min="-1" max="4" required>
+  </div>
+  <div>
+    <label for="Skills">Skills:</label>
+    <textarea id="Skills" name="skillsInput" rows="4" cols="50" maxlength="250" required></textarea>
+  </div>
+  <div>
+    <input type="submit" value="Continue!">
+  </div>
+</form>
+
+<div><a href="/">Switch To Login</a></div>
+</body>
+
+
+</html>

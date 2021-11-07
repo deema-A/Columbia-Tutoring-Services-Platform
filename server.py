@@ -9,6 +9,7 @@ A debugger such as "pdb" may be helpful for debugging.
 Read about it online.
 """
 import os
+from flask.globals import session
   # accessible as a variable in index.html:
 from sqlalchemy import *
 from sqlalchemy.pool import NullPool
@@ -34,6 +35,9 @@ DATABASEURI = "postgresql://daa2182:daa2182@34.74.246.148/proj1part2"
 # This line creates a database engine that knows how to connect to the URI above.
 #
 engine = create_engine(DATABASEURI)
+
+#Secret Key
+app.secret_key = "\x1b\x86'\x19'\x16\x9f\\V\xee\xf0\xc6\nU\xe0\xf1\xceX~\x13K\x0bL\x93"
 
 #
 # Example of running queries in your database
@@ -102,20 +106,8 @@ def index():
   """
 
   # DEBUG: this is debugging code to see what request looks like
-  print(request.args)
+  # print(request.args)
 
-
-  #
-  # example of a database query
-  #
-  cursor = g.conn.execute("SELECT Username, Password FROM Users")
-  Username = []
-  Password = []
-  for result in cursor:
-    print(result[0]) #use index insstead of attributes names
-    Username.append(result[0])  # can also be accessed using result[0]s
-    Password.append(result[1])
-  cursor.close()
 
   #
   # Flask uses Jinja templates, which is an extension to HTML where you can
@@ -143,13 +135,11 @@ def index():
   #     <div>{{n}}</div>
   #     {% endfor %}
   #
-  context = {'Username':Username,'Password':Password}
-
-
   #Our Instructions:
   # render_template looks in the templates/ folder for files.
   # for example, the below file reads template/index.html
   # Dictionary pass with prefix **
+  context = {'message': 'Welcome to the Columbia Tutor Center'}
   return render_template("index.html", **context)
 
 #
@@ -160,8 +150,60 @@ def index():
 # Notice that the function name is another() rather than index()
 # The functions for each app.route need to have different names
 #
+
+@app.route('/DashBoard')
+def DashBoard():
+  return render_template('another.html')
+
+@app.route('/Registration', methods=['POST', 'GET'])
+def registration():
+  context = {'message':'Welcome to the registration page.'}
+  return render_template("registration.html", **context)
+
+@app.route('/loginCheck', methods=['POST'])
+def loginCheck():
+  # User input to login
+  Username = request.form['usernameInput']
+  Password = request.form['passwordInput']
+  # Arguments setup
+  args = (Username, Password)
+  # SQL execute
+  cursor = g.conn.execute('SELECT Username FROM Users WHERE Username = (%s) AND Password = (%s)', args)
+  result = cursor.fetchone()
+  # Check whether this user exist or not
+  if result == None:
+    context = {'message': 'Wrong Username or Password, please try again!'}
+    return render_template('index.html', **context)
+  else:
+    session['Username'] = Username
+    return redirect('/DashBoard')
+
+@app.route('/registrationCheck', methods = ['POST'])
+def registrationCheck():
+  try:
+    Username = request.form['usernameInput']
+    Password = request.form['passwordInput']
+    RealName = request.form['realnameInput']
+    Email = request.form['emailInput']
+    PhoneNumber = request.form['phonenumberInput']
+    RoutingNumber = request.form['routingnumberInput']
+    BankAccount = request.form['bankaccountInput']
+    AccountType = request.form['accounttypeInput']
+    GPA = request.form['gpaInput']
+    Skills = request.form['skillsInput']
+    argsUsers = (Username, Password, RealName, Email, PhoneNumber, RoutingNumber, BankAccount, AccountType)
+    argsTutors = (Username, Skills)
+    argsStudents = (Username, float(GPA))
+    g.conn.execute('INSERT INTO Users VALUES (%s, %s, %s, %s, %s, %s, %s, %s)', argsUsers)
+    g.conn.execute('INSERT INTO Tutors(Username, Skills) VALUES (%s, %s)', argsTutors)
+    g.conn.execute('INSERT INTO Students(Username, GPA) VALUES (%s, %s)',argsStudents)
+  except Exception as e:
+    context = {'message':e}
+    return render_template('registration.html', **context)
+  return redirect('/DashBoard')
+
 '''
-@app.route('/another')s
+@app.route('/another')
 def another():
   return render_template("another.html")
 '''
