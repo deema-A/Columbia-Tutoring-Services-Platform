@@ -9,6 +9,7 @@ A debugger such as "pdb" may be helpful for debugging.
 Read about it online.
 """
 import os
+from click.core import Context
 from flask.globals import session
   # accessible as a variable in index.html:
 from sqlalchemy import *
@@ -153,7 +154,7 @@ def index():
 
 @app.route('/DashBoard')
 def DashBoard():
-  return render_template('another.html')
+  return render_template('base.html')
 
 @app.route('/Registration', methods=['POST', 'GET'])
 def registration():
@@ -207,6 +208,11 @@ def registrationCheck():
 def another():
   return render_template("another.html")
 '''
+@app.route('/Logout')
+def Logout():
+  session['Username'] = None
+  Context = {'message': "Logout Successfully"}
+  return render_template('index.html', **Context)
 
 # Example of adding new data to the database
 '''
