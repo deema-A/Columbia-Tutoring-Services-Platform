@@ -9,6 +9,7 @@ A debugger such as "pdb" may be helpful for debugging.
 Read about it online.
 """
 import os
+import re
 from click.core import Context
 from flask.globals import session
   # accessible as a variable in index.html:
@@ -154,7 +155,8 @@ def index():
 
 @app.route('/DashBoard')
 def DashBoard():
-  return render_template('base.html')
+  Context = {'message': "Welcome to dashboard " + session['Username']}
+  return render_template('dashboard.html', **Context)
 
 @app.route('/Registration', methods=['POST', 'GET'])
 def registration():
@@ -171,6 +173,7 @@ def loginCheck():
   # SQL execute
   cursor = g.conn.execute('SELECT Username FROM Users WHERE Username = (%s) AND Password = (%s)', args)
   result = cursor.fetchone()
+  cursor.close()
   # Check whether this user exist or not
   if result == None:
     context = {'message': 'Wrong Username or Password, please try again!'}
@@ -201,7 +204,11 @@ def registrationCheck():
   except Exception as e:
     context = {'message':e}
     return render_template('registration.html', **context)
-  return redirect('/DashBoard')
+
+  argsNotification = ("Welcome to Columbia Tutoring Center!", Username)
+  g.conn.execute('INSERT INTO NotificationBoxes_access (time, content, username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', argsNotification)
+  context = {'message': 'Register Successfully And Please Login!'}
+  return render_template('index.html', **context)
 
 '''
 @app.route('/another')
@@ -214,6 +221,63 @@ def Logout():
   Context = {'message': "Logout Successfully"}
   return render_template('index.html', **Context)
 
+@app.route('/Advertisement')
+def Advertisement():
+  cursor = g.conn.execute('SELECT AD.AdID, AD.Location, AD.AppointmentTime, AD.AvailableSeats, AD.Price, AD.Comments, AD.Username, D.DepartmentName, C.CourseName, C.CoureDescription \
+    FROM Adertisements_manage_associate AD, Departments D, Courses_belongs C WHERE AD.DepartmentID = D.DepartmentID  AND AD.CourseID = C.CourseID AND \
+    AD.DepartmentID = C.DepartmentID AND AD.AppointmentTime >= now() AT TIME ZONE \'EST\'')
+  result = cursor.fetchone()
+  store = []
+  document = {}
+  while result != None:
+    document['AdID'] = result[0]
+    document['Location'] = result[1]
+    document['AppointmentTime'] = result[2]
+    document['AvailableSeats'] = result[3]
+    document['Price'] = result[4]
+    document['Comments'] = result[5]
+    document['Username'] = result[6]
+    document['DepartmentName'] = result[7]
+    document['CourseName'] = result[8]
+    document['CoureDescription'] = result[9]
+    store.append(document)
+    document = {}
+    result = cursor.fetchone()
+  Context = {'store': store}
+  cursor.close()
+  return render_template('advertisement.html', **Context)
+
+@app.route('/MyAdvertisement')
+def MyAdvertisement():
+  args = (session['Username'])
+  cursor = g.conn.execute('SELECT AD.AdID, AD.Location, AD.AppointmentTime, AD.AvailableSeats, AD.Price, AD.Comments, AD.Username, D.DepartmentName, C.CourseName, C.CoureDescription \
+    FROM Adertisements_manage_associate AD, Departments D, Courses_belongs C WHERE AD.DepartmentID = D.DepartmentID  AND AD.CourseID = C.CourseID AND \
+    AD.DepartmentID = C.DepartmentID AND AD.Username = (%s)', args)
+  result = cursor.fetchone()
+  store = []
+  document = {}
+  while result != None:
+    document['AdID'] = result[0]
+    document['Location'] = result[1]
+    document['AppointmentTime'] = result[2]
+    document['AvailableSeats'] = result[3]
+    document['Price'] = result[4]
+    document['Comments'] = result[5]
+    document['Username'] = result[6]
+    document['DepartmentName'] = result[7]
+    document['CourseName'] = result[8]
+    document['CoureDescription'] = result[9]
+    store.append(document)
+    document = {}
+    result = cursor.fetchone()
+  Context = {'store': store}
+  cursor.close()
+  cursor = g.conn.execute('SELECT now() AT TIME ZONE \'EST\'')
+  # only one result, fetchone is enough
+  nowTime = cursor.fetchone()
+  Context['nowTime'] = nowTime[0]
+  cursor.close()
+  return render_template('myadvertisement.html', **Context)
 # Example of adding new data to the database
 '''
 @app.route('/add', methods=['POST'])

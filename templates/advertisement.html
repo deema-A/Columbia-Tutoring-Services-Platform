@@ -1,0 +1,122 @@
+<!-- Every page should contain this side menu, so that you can navigate back and forth -->
+<html>
+  <style>
+    body{ 
+      font-size: 15pt;
+      font-family: arial;
+    }
+
+    div{
+      text-align: center;
+      margin: 10px;
+    }
+    
+    .side_menu {
+      list-style: none;
+      margin: auto;
+      margin-bottom: 20px;
+      width: 300px;
+      border: solid 2px black;
+      border-radius: 12px;
+    }
+
+    .side_menu li{
+        border-bottom: dotted 2px #ddd;
+    }
+
+    .side_menu li a {
+        text-decoration: none;
+        display: block;
+        padding: 14px 16px;
+        color: black;
+    }
+
+    .side_menu li:last-child{
+        border-bottom: none;
+    }
+
+    .side_menu li a:hover{
+        color: blue;
+    }
+
+    table, th, td{
+        border: solid 2px black;
+    }
+
+    table {
+        margin: auto;
+    }
+
+    a {
+        text-decoration: none;
+    }
+
+    .myAD{
+        display: block;
+        border: 2px solid black;
+        border-radius: 5px;
+        background: gray;
+        color: white;
+        margin: auto;
+        margin-top: 20px;
+        width: 200px;
+        padding: 5px;
+        text-align: center;
+    }
+
+    .myAD:hover {
+        color: blue;
+    }
+  </style>
+
+<body>
+    <ul class="side_menu">
+      <li><a href="Advertisement">Advertisement Center</a></li>
+      <li><a href="Orders">Orders</a></li>
+      <li><a href="MyProfile">My Profile</a></li>
+      <li><a href="VIP">Become VIP</a></li>
+      <li><a href="Rating">Rating</a></li>
+      <li><a href="Notification">Notification Box</a></li>
+      <li><a href="Logout">Log Out</a></li>
+    </ul>
+    <!-- Can view all unexpired advertisements -->
+    <table>
+        <tr>
+            <th>Ad ID</th>
+            <th>Location</th>
+            <th>Appointment Time</th>
+            <th>Available Seats</th>
+            <th>Price</th>
+            <th>Comments</th>
+            <th>Tutor User Name</th>
+            <th>Department Name</th>
+            <th>Course Name</th>
+            <th>Course Description</th>
+            <th>Ordering</th>
+        </tr>
+        {% for r in store %}
+            <tr>
+                <td>{{r.AdID}}</td>
+                <td>{{r.Location}}</td>
+                <td>{{r.AppointmentTime}}</td>
+                <td>{{r.AvailableSeats}}</td>
+                <td>{{r.Price}}</td>
+                <td>{{r.Comments}}</td>
+                <td>{{r.Username}}</td>
+                <td>{{r.DepartmentName}}</td>
+                <td>{{r.CourseName}}</td>
+                <td>{{r.CoureDescription}}</td>
+                {% if r.AvailableSeats > 0 %}
+                    <td><a href="OrderPlacing">Place Order</a></td>
+                {% else %}
+                    <td>Seats Not Available</td>
+                {% endif %}
+            </tr>
+        {% endfor %}
+    </table>
+
+    <a class="myAD" href="MyAdvertisement">My advertisement</a>
+</body>
+
+
+</html>
