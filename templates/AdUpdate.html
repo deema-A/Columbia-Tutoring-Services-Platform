@@ -14,7 +14,7 @@
     .side_menu {
       list-style: none;
       margin: auto;
-      margin-bottom: 20px;
+      padding: 0;
       width: 300px;
       border: solid 2px black;
       border-radius: 12px;
@@ -39,31 +39,6 @@
         color: blue;
     }
 
-    table, th, td{
-        border: solid 2px black;
-    }
-
-    table {
-        margin: auto;
-    }
-
-    a {
-        text-decoration: none;
-    }
-
-    .Action {
-        text-decoration: none;
-        text-align: center;
-        display: block;
-        color: white;
-        margin: 10px;
-        border: 2px solid black;
-        background: gray;
-    }
-
-    .Action:hover {
-        color: blue;
-    }
   </style>
 
 <body>
@@ -76,51 +51,15 @@
       <li><a href="/Notification">Notification Box</a></li>
       <li><a href="/Logout">Log Out</a></li>
     </ul>
-    <!-- Can view all advertisements but only can modify unexpired advertisements-->
-    <table>
-        <tr>
-            <th>Ad ID</th>
-            <th>Location</th>
-            <th>Appointment Time</th>
-            <th>Available Seats</th>
-            <th>Price</th>
-            <th>Comments</th>
-            <th>Tutor User Name</th>
-            <th>Department Name</th>
-            <th>Course Name</th>
-            <th>Course Description</th>
-            <th>Action</th>
-        </tr>
-        {% for r in store %}
-            <tr>
-                <td>{{r.AdID}}</td>
-                <td>{{r.Location}}</td>
-                <td>{{r.AppointmentTime}}</td>
-                <td>{{r.AvailableSeats}}</td>
-                <td>{{r.Price}}</td>
-                <td>{{r.Comments}}</td>
-                <td>{{r.Username}}</td>
-                <td>{{r.DepartmentName}}</td>
-                <td>{{r.CourseName}}</td>
-                <td>{{r.CoureDescription}}</td>
-                <!-- Only can modify unexpired advertisements -->
-                {% if r.AppointmentTime >  nowTime %}
-                    <td><a class="Action" href="/MyAdvertisement/Update/{{r.AdID}}">Update</a>
-                        <a class="Action" href="/MyAdvertisement/Delete/{{r.AdID}}">Delete</a></td>
-                {% else %}
-                    <td>Action Not Available</td>
-                {% endif %}
-            </tr>
-        {% endfor %}
-    </table>
-    <form method="POST" action="/newAdInsertion">
+
+    <form method="POST" action="/AdUpdate">
         <!-- <div>
             <label for="Username">Username:</label>
             <input type="text" id="Username" name="usernameInput" maxlength="20" required>
         </div> -->
         <div>
             <label for="Location">Location:</label>
-            <input type="text" id="Location" name="LocationInput" maxlength="250" required>
+            <input type="text" id="Location" name="LocationInput" maxlength="250" value="{{Location}}" required>
         </div>
         <div>
             <label for="AppointmentTime1">Appointment Time:</label>
@@ -129,15 +68,15 @@
         </div>
         <div>
             <label for="AvailableSeats">Available Seats:</label>
-            <input type="number" min="0" id="AvailableSeats" name="AvailableSeatsInput" required>
+            <input type="number" min="0" id="AvailableSeats" name="AvailableSeatsInput" value="{{AvailableSeats}}" required>
         </div>
         <div>
             <label for="Price">Price:</label>
-            <input type="number" step="0.01" min="0" id="Price" name="PriceInput" required>
+            <input type="number" step="0.01" min="0" id="Price" name="PriceInput" value="{{Price}}" required>
         </div>
         <div>
             <label for="Comments">Comments:</label>
-            <textarea id="Comments" name="CommentsInput" rows="4" cols="50" maxlength="255" required></textarea>
+            <textarea id="Comments" name="CommentsInput" rows="4" cols="50" maxlength="255" required>{{Comments}}</textarea>
         </div>
         <div>
             <label for="DepartmentCourse">Department and Course:</label>
@@ -148,7 +87,7 @@
             </select>
         </div>
         <div>
-            <input type="submit" value="Add New Advertisement!">
+            <input type="submit" value="Update Advertisement!">
         </div>
     </form>
 </body>

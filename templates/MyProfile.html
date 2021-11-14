@@ -1,0 +1,161 @@
+<!-- Every page should contain this side menu, so that you can navigate back and forth -->
+<html>
+  <style>
+    body{ 
+      font-size: 15pt;
+      font-family: arial;
+    }
+
+    div{
+      text-align: center;
+      margin: 10px;
+    }
+    
+    .side_menu {
+      list-style: none;
+      margin: auto;
+      margin-bottom: 20px;
+      width: 300px;
+      border: solid 2px black;
+      border-radius: 12px;
+    }
+
+    .side_menu li{
+        border-bottom: dotted 2px #ddd;
+    }
+
+    .side_menu li a {
+        text-decoration: none;
+        display: block;
+        padding: 14px 16px;
+        color: black;
+    }
+
+    .side_menu li:last-child{
+        border-bottom: none;
+    }
+
+    .side_menu li a:hover{
+        color: blue;
+    }
+
+    table, th, td{
+        border: solid 2px black;
+    }
+
+    table {
+        margin: auto;
+    }
+
+    a {
+        text-decoration: none;
+    }
+
+    .Action {
+        text-decoration: none;
+        text-align: center;
+        display: block;
+        color: white;
+        margin: 10px;
+        border: 2px solid black;
+        background: gray;
+    }
+
+    .Action:hover {
+        color: blue;
+    }
+  </style>
+
+<body>
+    <ul class="side_menu">
+      <li><a href="/Advertisement">Advertisement Center</a></li>
+      <li><a href="/Orders">Orders</a></li>
+      <li><a href="/MyProfile">My Profile</a></li>
+      <li><a href="/VIP">Become VIP</a></li>
+      <li><a href="/Rating">Rating</a></li>
+      <li><a href="/Notification">Notification Box</a></li>
+      <li><a href="/Logout">Log Out</a></li>
+    </ul>
+    <!-- Can view all advertisements but only can modify unexpired advertisements-->
+
+    <div class="messageBox">
+      {{message}}
+    </div>
+    <table>
+      <tr>
+        <th>User Name</th>
+        <th>Password</th>
+        <th>Real Name</th>
+        <th>Email</th>
+        <th>Phone Number</th>
+        <th>Routing Number</th>
+        <th>Bank Account</th>
+        <th>Account Type</th>
+        <th>Score</th>
+        <th>Number Rate</th>
+        <th>Skills</th>
+        <th>GPA</th>
+      </tr>
+      <tr>
+        <td>{{Username}}</td>
+        <td>{{Password}}</td>
+        <td>{{RealName}}</td>
+        <td>{{Email}}</td>
+        <td>{{PhoneNumber}}</td>
+        <td>{{RoutingNumber}}</td>
+        <td>{{BankAccount}}</td>
+        <td>{{AccountType}}</td>
+        <td>{{Score}}</td>
+        <td>{{NumberRate}}</td>
+        <td>{{Skills}}</td>
+        <td>{{GPA}}</td>
+      </tr>
+    </table>
+    <!-- Use required to satisfy not null condition in SQL schema -->
+    <!-- registrationCheck page is just used for checking and inserting valid inputs into database and redirect to the user Dashboard -->
+    <form method="POST" action="/profileCheck">
+      <div>
+        <label for="Password">Password:</label>
+        <input type="password" id="Password" name="passwordInput" maxlength="60" required>
+      </div>
+      <div>
+        <label for="RealName">Real Name:</label>
+        <input type="text" id="RealName" name="realnameInput" maxlength="80" required>
+      </div>
+      <div>
+        <label for="Email">Email:</label>
+        <input type="email" id="Email" name="emailInput" maxlength="120" required>
+      </div>
+      <div>
+        <label for="PhoneNumber">Phone Number:</label>
+        <input type="text" id="PhoneNumber" name="phonenumberInput" maxlength="20" required>
+      </div>
+      <div>
+        <label for="RoutingNumber">Routing Number:</label>
+        <input type="text" id="RoutingNumber" name="routingnumberInput" maxlength="9" required>
+      </div>
+      <div>
+        <label for="BankAccount">Bank Account:</label>
+        <input type="text" id="BankAccount" name="bankaccountInput" maxlength="20" required>
+      </div>
+      <div>
+        <label for="AccountType">Account Type:</label>
+        <!-- Checked to guaranttee not null in the SQL schema -->
+        <input type="radio" id="AccountType" name="accounttypeInput" value="Checking" checked> Checking
+        <br>
+        <input type="radio" id="AccountType" name="accounttypeInput" value="Saving"> Saving
+      </div>
+      <div>
+        <label for="GPA">GPA:</label>
+        <input type="number" step="0.01" id="GPA" name="gpaInput" min="-1" max="4" required>
+      </div>
+      <div>
+        <label for="Skills">Skills:</label>
+        <textarea id="Skills" name="skillsInput" rows="4" cols="50" maxlength="250" required></textarea>
+      </div>
+      <div>
+        <input type="submit" value="Edit!">
+      </div>
+    </form>
+  </body>
+</html>

@@ -322,6 +322,94 @@ def newAdInsertion():
   Context = {'message':'Advertisement Placed Successfully'}
   return render_template('dashboard.html', **Context)
 
+# Update advertisement
+@app.route('/MyAdvertisement/Update/<AdID>')
+def AdUpdate(AdID):
+  Context = {}
+  args = (AdID)
+  cursor = g.conn.execute('SELECT AD.Location, AD.AppointmentTime, AD.AvailableSeats, AD.Price, AD.Comments \
+    FROM Adertisements_manage_associate AD WHERE AD.AdID = (%s)', args)
+  # Only one ad will be returned because AdID is a primary key.
+  result = cursor.fetchone()
+  Context['Location'] = result[0]
+  Context['AppointmentTime'] = result[1]
+  Context['AvailableSeats'] = result[2]
+  Context['Price'] = result[3]
+  Context['Comments'] = result[4]
+  cursor.close()
+  # Departments and courses
+  cursor = g.conn.execute('SELECT C.DepartmentID, D.DepartmentName, C.CourseID, C.CourseName \
+    FROM Departments D, Courses_belongs C WHERE D.DepartmentID = C.DepartmentID')
+  result = cursor.fetchone()
+  store = []
+  document = {}
+  while result != None:
+    document['DepartmentID'] = result[0]
+    document['DepartmentName'] = result[1]
+    document['CourseID'] = result[2]
+    document['CourseName'] = result[3]
+    store.append(document)
+    document = {}
+    result = cursor.fetchone()
+  Context['Department'] = store
+  cursor.close()
+  return render_template('AdUpdate.html',**Context)
+
+@app.route('/MyProfile')
+def MyProfiles():
+  #select query join tutors+ student+users
+  cursor = g.conn.execute("SELECT u.Password, u.RealName, u.Email, u.PhoneNumber, u.RoutingNumber, u.BankAccount, u.AccountType, t.Score, t.NumberRate,\
+    t.Skills , s.GPA\
+    FROM Users u, Tutors t, Students  s \
+    where s.Username = t.Username and s.Username = u.Username and u.Username = (%s)",session['Username'])
+  result = cursor.fetchone()
+
+  Context = {}
+  Context['Username'] = session['Username']
+  Context['Password'] = result[0]
+  Context['RealName'] = result[1]
+  Context['Email'] = result[2]
+  Context['PhoneNumber'] = result[3]
+  Context['RoutingNumber'] = result[4]
+  Context['BankAccount'] = result[5]
+  Context['AccountType'] = result[6]
+  Context['Score'] = result[7]
+  Context['NumberRate'] = result[8]
+  Context['Skills'] = result[9]
+  Context['GPA'] = result[10]
+
+  return render_template('MyProfile.html', **Context)
+
+@app.route('/profileCheck', methods = ['POST'])
+def ProfileCheck():
+  try:
+    Username = session['Username']
+    Password = request.form['passwordInput']
+    RealName = request.form['realnameInput']
+    Email = request.form['emailInput']
+    PhoneNumber = request.form['phonenumberInput']
+    RoutingNumber = request.form['routingnumberInput']
+    BankAccount = request.form['bankaccountInput']
+    AccountType = request.form['accounttypeInput']
+    GPA = request.form['gpaInput']
+    Skills = request.form['skillsInput']
+    argsUsers = (Password, RealName, Email, PhoneNumber, RoutingNumber, BankAccount, AccountType, Username)
+    argsTutors = (Skills, Username)
+    argsStudents = (float(GPA), Username)
+
+    g.conn.execute('UPDATE Users SET Password = (%s), RealName = (%s), Email = (%s), PhoneNumber= (%s), RoutingNumber=(%s), BankAccount=(%s), AccountType=(%s) WHERE Username = (%s)', argsUsers)
+    g.conn.execute('UPDATE Tutors SET Skills = (%s) WHERE Username = (%s)', argsTutors)
+    g.conn.execute('UPDATE Students SET GPA =(%s) WHERE Username = (%s)',argsStudents)
+
+  except Exception as e:
+    context = {'message':e}
+    return render_template('dashboard.html', **context)
+
+  argsNotification = ("You just updated your profile!", Username)
+  g.conn.execute('INSERT INTO NotificationBoxes_access (time, content, username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', argsNotification)
+  context = {'message': 'Successsful update!'}
+  return render_template('dashboard.html', **context)
+
 @app.route('/VIP')
 def VIP():
   Context = {'message': "Let's be a VIP member! " + session['Username']}
