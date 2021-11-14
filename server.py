@@ -10,6 +10,7 @@ Read about it online.
 """
 import os
 import re
+import datetime
 from click.core import Context
 from flask.globals import session
   # accessible as a variable in index.html:
@@ -277,7 +278,84 @@ def MyAdvertisement():
   nowTime = cursor.fetchone()
   Context['nowTime'] = nowTime[0]
   cursor.close()
+  # Departments and courses
+  cursor = g.conn.execute('SELECT C.DepartmentID, D.DepartmentName, C.CourseID, C.CourseName \
+    FROM Departments D, Courses_belongs C WHERE D.DepartmentID = C.DepartmentID')
+  result = cursor.fetchone()
+  store = []
+  document = {}
+  while result != None:
+    document['DepartmentID'] = result[0]
+    document['DepartmentName'] = result[1]
+    document['CourseID'] = result[2]
+    document['CourseName'] = result[3]
+    store.append(document)
+    document = {}
+    result = cursor.fetchone()
+  Context['Department'] = store
+  cursor.close()
   return render_template('myadvertisement.html', **Context)
+
+@app.route('/newAdInsertion', methods=['POST'])
+def newAdInsertion():
+  location = request.form['LocationInput']
+  AppointmentTime = request.form['AppointmentTimeDateInput'] + ' ' + request.form['AppointmentTimeTimeInput'] + ':00'
+  AvailableSeats = request.form['AvailableSeatsInput']
+  Price = request.form['PriceInput']
+  CommentsInput = request.form['CommentsInput']
+  DepartmentCourseInput = request.form['DepartmentCourseInput'].split('/')
+  Department = DepartmentCourseInput[0]
+  Course = DepartmentCourseInput[1]
+  try:
+    temp = datetime.datetime.strptime(AppointmentTime, '%Y-%m-%d %H:%M:%S')
+    if temp < datetime.datetime.now():
+      Context = {'message': 'Please input a future appoinment time'}
+      return render_template('dashboard.html', **Context)
+    args = (location, AppointmentTime, AvailableSeats, Price, CommentsInput, session['Username'], Department, Course)
+    g.conn.execute('INSERT INTO Adertisements_manage_associate (Location, AppointmentTime, AvailableSeats, Price, Comments, Username, DepartmentID, CourseID) VALUES\
+      (%s, %s, %s, %s, %s, %s, %s, %s)', args)
+    args = ('Your advertisement has been succefully placed', session['Username'])
+    g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
+  except Exception as e:
+    Context = {'message': e}
+    return render_template('dashboard.html', **Context)
+  Context = {'message':'Advertisement Placed Successfully'}
+  return render_template('dashboard.html', **Context)
+
+@app.route('/VIP')
+def VIP():
+  Context = {'message': "Let's be a VIP member! " + session['Username']}
+  return render_template('VIP.html', **Context)
+
+@app.route('/VIPCheck', methods=['POST'])
+def VIPCheck():
+  try:
+    # User input for end date
+    endvip = request.form['endvip']
+    # Arguments setup
+    args = (endvip, session['Username'])
+    args1 = (session['Username'])
+    # SQL execute
+    cursor = g.conn.execute('SELECT e.Username FROM VIPs_Enroll e WHERE e.Username = (%s)', args1)
+    result = cursor.fetchone()
+    # each user has only record in the VIPs_Enroll Table
+    # here are two cases to consider
+    cursor.close()
+    #Case 1: if the user does not have a VIPs_Enroll record, new record will be inserted
+    if result == None:
+      g.conn.execute('INSERT INTO VIPs_Enroll(StartDate, EndDate, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
+    #Case 2: if there is exist a record for that user, only the end date will be updated
+    else:
+      g.conn.execute('UPDATE VIPs_Enroll SET EndDate = (%s) WHERE Username =  (%s)', args)
+
+    #send Notification to the user
+    argsNotification = ("You are a VIP member! Hope you enjoy it!", session['Username'])
+    g.conn.execute('INSERT INTO NotificationBoxes_access (time, content, username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', argsNotification)
+  except Exception as e:
+    context = {'message':e} 
+    return render_template('VIP.html', **context)
+  context = {'message':"Congrats!You are a VIP now!"} 
+  return render_template('Dashboard.html', **context)
 # Example of adding new data to the database
 '''
 @app.route('/add', methods=['POST'])
