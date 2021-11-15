@@ -325,6 +325,7 @@ def newAdInsertion():
 # Update advertisement
 @app.route('/MyAdvertisement/Update/<AdID>')
 def AdUpdate(AdID):
+  session['AdID'] = AdID
   Context = {}
   args = (AdID)
   cursor = g.conn.execute('SELECT AD.Location, AD.AppointmentTime, AD.AvailableSeats, AD.Price, AD.Comments \
@@ -354,6 +355,35 @@ def AdUpdate(AdID):
   Context['Department'] = store
   cursor.close()
   return render_template('AdUpdate.html',**Context)
+
+@app.route('/AdUpdateCheck', methods = ['POST'])
+def AdUpdateCheck():
+  AdID = session['AdID']
+  location = request.form['LocationInput']
+  AppointmentTime = request.form['AppointmentTimeDateInput'] + ' ' + request.form['AppointmentTimeTimeInput'] + ':00'
+  AvailableSeats = request.form['AvailableSeatsInput']
+  Price = request.form['PriceInput']
+  CommentsInput = request.form['CommentsInput']
+  DepartmentCourseInput = request.form['DepartmentCourseInput'].split('/')
+  Department = DepartmentCourseInput[0]
+  Course = DepartmentCourseInput[1]
+  try:
+    temp = datetime.datetime.strptime(AppointmentTime, '%Y-%m-%d %H:%M:%S')
+    if temp < datetime.datetime.now():
+      Context = {'message': 'Please input a future appoinment time'}
+      return render_template('dashboard.html', **Context)
+    # Argument set up
+    args = (location, AppointmentTime, AvailableSeats, Price, CommentsInput, Department, Course, AdID)
+    g.conn.execute('UPDATE Adertisements_manage_associate SET Location=(%s), AppointmentTime=(%s), AvailableSeats=(%s), Price=(%s), Comments=(%s),\
+      DepartmentID=(%s), CourseID=(%s) WHERE AdID=(%s)',args)
+  except Exception as e:
+    Context = {'message': e}
+    return render_template('dashboard.html', **Context)
+  # message notification
+  args = ('Your advertisement has been succefully updated', session['Username'])
+  g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
+  Context = {'message':'Advertisement Updated Successfully'}
+  return render_template('dashboard.html', **Context)
 
 @app.route('/MyProfile')
 def MyProfiles():
