@@ -76,27 +76,51 @@
         {{message}}
     </div>
 
-
     <ul class="side_menu">
       <li><a href="/Advertisement">Advertisement Center</a></li>
       <li><a href="/Orders">Orders</a></li>
       <li><a href="/MyProfile">My Profile</a></li>
       <li><a href="/VIP">Become VIP</a></li>
       <li><a href="/Rating">Rating</a></li>
-      <li><a href="/SearchProfile">Search Profiless</a></li>
+      <li><a href="/SearchProfile">Search Profiles</a></li>
       <li><a href="/Notification">Notification Box</a></li>
       <li><a href="/Logout">Log Out</a></li>
     </ul>
-    <!-- User can enroll in VIP program for some period of time-->
-    <form method="POST" action="/VIPCheck">
-            <label for="endvip">This VIP membership valid untill:</label>
+    
+    <form method="POST" action="/profile">
+    <div>
+        <label for="Users">Users:</label>
+        <select name="DUsersInput" id="Users" required>
+            {% for r in store %}
+            <option value="{{r.Username}}">{{r.Username}}</option>
+            {% endfor %}
+        </select>
+    <input type="submit" value="View Profile">
+  </div>
+  </form>
+  {% for e in store2 %}
 
-            <input type="date" id="endvip" name="endvip"
-                   min="<?= date('Y-m-d'); ?>" required>
-
-            <input type="submit" value="Join!">
-    </form>
-        
+      <table>
+        <tr>
+          <th>User Name</th>
+          <th>Real Name</th>
+          <th>Email</th>
+          <th>Score</th>
+          <th>Number Rate</th>
+          <th>Skills</th>
+          <th>GPA</th>
+        </tr>
+        <tr>
+          <td>{{e.Username}}</td>
+          <td>{{e.RealName}}</td>
+          <td>{{e.Email}}</td>
+          <td>{{e.Score}}</td>
+          <td>{{e.NumberRate}}</td>
+          <td>{{e.Skills}}</td>
+          <td>{{e.GPA}}</td>
+        </tr>
+        {% endfor %}
+      </table>  
        
 </body>
 

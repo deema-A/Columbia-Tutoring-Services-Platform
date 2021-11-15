@@ -393,7 +393,6 @@ def MyProfiles():
     FROM Users u, Tutors t, Students  s \
     where s.Username = t.Username and s.Username = u.Username and u.Username = (%s)",session['Username'])
   result = cursor.fetchone()
-
   Context = {}
   Context['Username'] = session['Username']
   Context['Password'] = result[0]
@@ -474,6 +473,116 @@ def VIPCheck():
     return render_template('VIP.html', **context)
   context = {'message':"Congrats!You are a VIP now!"} 
   return render_template('Dashboard.html', **context)
+
+@app.route('/SearchProfile', methods=["POST", "GET"])
+def SearchProfile():
+  cursor = g.conn.execute('SELECT Username from Users')
+  result = cursor.fetchone()
+  store = []
+  document = {}
+  while result != None:
+    document['Username'] = result[0]
+    store.append(document)
+    document = {}
+    result = cursor.fetchone()
+  Context = {'store': store}
+  cursor.close()
+  return render_template('SearchProfile.html', **Context)
+
+@app.route('/profile', methods=["POST", "GET"])
+def retrieveProfile():
+  PID = request.form['DUsersInput']
+  cursor = g.conn.execute('SELECT Username from Users')
+  result = cursor.fetchone()
+  store = []
+  document = {}
+  while result != None:
+    document['Username'] = result[0]
+    store.append(document)
+    document = {}
+    result = cursor.fetchone()
+  Context = {'store': store}
+  cursor.close()
+  args = (PID)
+  cursor = g.conn.execute("SELECT u.Username, u.RealName, u.Email, t.Score, t.NumberRate,\
+    t.Skills , s.GPA\
+    FROM Users u, Tutors t, Students  s \
+    where s.Username = t.Username and s.Username = u.Username and u.Username = (%s)",args)
+  result = cursor.fetchone()
+  store2 = []
+  document = {}
+  document['Username'] = result[0]
+  document['RealName'] = result[1]
+  document['Email'] = result[2]
+  document['Score'] = result[3]
+  document['NumberRate'] = result[4]
+  document['Skills'] = result[5]
+  document['GPA'] = result[6]
+  store2.append(document)
+  document = {}
+  Context['store2'] = store2
+  cursor.close()
+  return render_template('SearchProfile.html', **Context)
+
+#activeSessions
+@app.route('/activeSessions', methods=["POST", "GET"])
+def activeSessions():
+  DID = request.form['DeptsInput']
+  cursor = g.conn.execute('SELECT DepartmentID, DepartmentName from Departments')
+  result = cursor.fetchone()
+  store = []
+  document = {}
+  while result != None:
+    document['DepartmentID'] = result[0]
+    document['DepartmentName'] = result[1]
+    store.append(document)
+    document = {}
+    result = cursor.fetchone()
+  Context = {'store': store}
+  cursor.close()
+  args = (DID)
+  cursor = g.conn.execute('SELECT AD.AdID, AD.Location, AD.AppointmentTime, AD.AvailableSeats, AD.Price, AD.Comments, AD.Username, D.DepartmentName, C.CourseName, C.CoureDescription \
+    FROM Adertisements_manage_associate AD, Departments D, Courses_belongs C WHERE AD.DepartmentID = D.DepartmentID  AND AD.CourseID = C.CourseID AND \
+    AD.DepartmentID = C.DepartmentID AND AppointmentTime >= now() AT TIME ZONE \'EST\' AND D.DepartmentID = (%s)', args)
+  result = cursor.fetchone()
+  store2 = []
+  document = {}
+  if result is None:
+    Context['message']= 'No Available Sessions!'
+  else:
+    document['AdID'] = result[0]
+    document['Location'] = result[1]
+    document['AppointmentTime'] = result[2]
+    document['AvailableSeats'] = result[3]
+    document['Price'] = result[4]
+    document['Comments'] = result[5]
+    document['Username'] = result[6]
+    document['DepartmentName'] = result[7]
+    document['CourseName'] = result[8]
+    document['CoureDescription'] = result[9]
+  store2.append(document)
+  document = {}
+  Context['store2'] = store2
+  cursor.close()
+  return render_template('searchdepartment.html', **Context)
+
+
+@app.route('/searchdepartment', methods=["POST", "GET"])
+def searchdepartment():
+  cursor = g.conn.execute('SELECT DepartmentID, DepartmentName from Departments')
+  result = cursor.fetchone()
+  store = []
+  document = {}
+  while result != None:
+    document['DepartmentID'] = result[0]
+    document['DepartmentName'] = result[1]
+    store.append(document)
+    document = {}
+    result = cursor.fetchone()
+  Context = {'store': store}
+  cursor.close()
+  return render_template('searchdepartment.html', **Context)
+
 # Example of adding new data to the database
 '''
 @app.route('/add', methods=['POST'])

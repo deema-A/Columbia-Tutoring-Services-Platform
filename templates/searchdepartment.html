@@ -71,11 +71,9 @@
   </style>
 
 <body>
-
     <div class="messageBox">
         {{message}}
     </div>
-
 
     <ul class="side_menu">
       <li><a href="/Advertisement">Advertisement Center</a></li>
@@ -83,22 +81,53 @@
       <li><a href="/MyProfile">My Profile</a></li>
       <li><a href="/VIP">Become VIP</a></li>
       <li><a href="/Rating">Rating</a></li>
-      <li><a href="/SearchProfile">Search Profiless</a></li>
+      <li><a href="/SearchProfile">Search Profiles</a></li>
       <li><a href="/Notification">Notification Box</a></li>
       <li><a href="/Logout">Log Out</a></li>
     </ul>
-    <!-- User can enroll in VIP program for some period of time-->
-    <form method="POST" action="/VIPCheck">
-            <label for="endvip">This VIP membership valid untill:</label>
+    <!-- Can view all advertisements but only can modify unexpired advertisements-->
+    
+    <form method="POST" action="/activeSessions">
+        <div>
+            <label for="Depts">Departments:</label>
+            <select name="DeptsInput" id="Depts" required>
+                {% for r in store %}
+                <option value="{{r.DepartmentID}}">{{r.DepartmentName}}</option>
+                {% endfor %}
+            </select>
+        <input type="submit" value="Browsing active tutoring sessions">
+      </div>
+      </form>
+      {% for e in store2 %}
+    
+          <table>
+            <tr>
+              <th>Ad ID</th>
+              <th>Location</th>
+              <th>Appointment Time</th>
+              <th>Available Seats</th>
+              <th>Price</th>
+              <th>Comments</th>
+              <th>Tutor User Name</th>
+              <th>Department Name</th>
+              <th>Course Name</th>
+              <th>Course Description</th>
+            </tr>
+            <tr>
+              <td>{{e.AdID}}</td>
+              <td>{{e.Location}}</td>
+              <td>{{e.AppointmentTime}}</td>
+              <td>{{e.AvailableSeats}}</td>
+              <td>{{e.Price}}</td>
+              <td>{{e.Comments}}</td>
+              <td>{{e.Username}}</td>
+              <td>{{e.DepartmentName}}</td>
+              <td>{{e.CourseName}}</td>
+              <td>{{e.CoureDescription}}</td>
+            </tr>
+            {% endfor %}
+          </table>  
 
-            <input type="date" id="endvip" name="endvip"
-                   min="<?= date('Y-m-d'); ?>" required>
-
-            <input type="submit" value="Join!">
-    </form>
-        
-       
-</body>
-
-
+    </body>
+    
 </html>
