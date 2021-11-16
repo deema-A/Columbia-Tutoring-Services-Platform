@@ -569,6 +569,24 @@ def activeSessions():
   return render_template('searchdepartment.html', **Context)
 
 
+@app.route('/Notification', methods=["POST", "GET"])
+def Notification():
+  cursor = g.conn.execute('SELECT n.Time, n.Content from NotificationBoxes_access n where n.Username = (%s)',session['Username'])
+  result = cursor.fetchone()
+  store = []
+  document = {}
+  while result != None:
+    document['Time'] = result[0]
+    document['Content'] = result[1]
+    store.append(document)
+    document = {}
+    result = cursor.fetchone()
+  Context = {'store': store}
+  cursor.close()
+  return render_template('Notification.html', **Context)
+
+
+
 @app.route('/searchdepartment', methods=["POST", "GET"])
 def searchdepartment():
   cursor = g.conn.execute('SELECT DepartmentID, DepartmentName from Departments')
