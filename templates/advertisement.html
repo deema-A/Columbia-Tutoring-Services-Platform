@@ -109,7 +109,7 @@
                 <td>{{r.CourseName}}</td>
                 <td>{{r.CoureDescription}}</td>
                 {% if r.AvailableSeats > 0 %}
-                    <td><a href="/OrderPlacing">Place Order</a></td>
+                    <td><a href="/OrderPlacing/{{r.AdID}}/{{r.Username}}/{{r.Price}}">Place Order</a></td>
                 {% else %}
                     <td>Seats Not Available</td>
                 {% endif %}
