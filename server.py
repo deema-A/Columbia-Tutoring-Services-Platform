@@ -550,17 +550,19 @@ def activeSessions():
   if result is None:
     Context['message']= 'No Available Sessions!'
   else:
-    document['AdID'] = result[0]
-    document['Location'] = result[1]
-    document['AppointmentTime'] = result[2]
-    document['AvailableSeats'] = result[3]
-    document['Price'] = result[4]
-    document['Comments'] = result[5]
-    document['Username'] = result[6]
-    document['DepartmentName'] = result[7]
-    document['CourseName'] = result[8]
-    document['CoureDescription'] = result[9]
-  store2.append(document)
+    while result != None:
+      document['AdID'] = result[0]
+      document['Location'] = result[1]
+      document['AppointmentTime'] = result[2]
+      document['AvailableSeats'] = result[3]
+      document['Price'] = result[4]
+      document['Comments'] = result[5]
+      document['Username'] = result[6]
+      document['DepartmentName'] = result[7]
+      document['CourseName'] = result[8]
+      document['CoureDescription'] = result[9]
+      result = cursor.fetchone()
+      store2.append(document)
   document = {}
   Context['store2'] = store2
   cursor.close()

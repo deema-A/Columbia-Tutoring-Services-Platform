@@ -98,7 +98,7 @@
         <input type="submit" value="Browsing active tutoring sessions">
       </div>
       </form>
-      {% for e in store2 %}
+      
     
           <table>
             <tr>
@@ -113,11 +113,16 @@
               <th>Course Name</th>
               <th>Course Description</th>
             </tr>
+            {% for e in store2 %}
             <tr>
               <td>{{e.AdID}}</td>
               <td>{{e.Location}}</td>
               <td>{{e.AppointmentTime}}</td>
-              <td>{{e.AvailableSeats}}</td>
+              {% if e.AvailableSeats > 0 %}
+                    <td><a href="/OrderPlacing">Place Order</a></td>
+                {% else %}
+                    <td>Seats Not Available</td>
+                {% endif %}
               <td>{{e.Price}}</td>
               <td>{{e.Comments}}</td>
               <td>{{e.Username}}</td>
