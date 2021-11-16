@@ -80,44 +80,53 @@
       <li><a href="/Notification">Notification Box</a></li>
       <li><a href="/Logout">Log Out</a></li>
     </ul>
-    <a class="myAD" href="/searchdepartment">Search By Department</a>
-    <!-- Can view all unexpired advertisements -->
     <table>
         <tr>
-            <th>Ad ID</th>
-            <th>Location</th>
-            <th>Appointment Time</th>
-            <th>Available Seats</th>
-            <th>Price</th>
-            <th>Comments</th>
-            <th>Tutor User Name</th>
+            <th>Order ID</th>
             <th>Department Name</th>
             <th>Course Name</th>
             <th>Course Description</th>
-            <th>Ordering</th>
+            <th>Location</th>
+            <th>Appointment Time</th>
+            <th>Tutor User Name</th>
+            <th>Available Seats</th>
+            <th>Price</th>
+            <th>Total</th>
+            <th>Comments</th>
+            <th>Status</th>
+            <th>Order Time</th>
+            <th>Last Update Time</th>
+            <th>Update</th>
         </tr>
         {% for r in store %}
-            <tr>
-                <td>{{r.AdID}}</td>
-                <td>{{r.Location}}</td>
-                <td>{{r.AppointmentTime}}</td>
-                <td>{{r.AvailableSeats}}</td>
-                <td>{{r.Price}}</td>
-                <td>{{r.Comments}}</td>
-                <td>{{r.Username}}</td>
+            <tr>                
+                <td>{{r.OrderID}}</td>
                 <td>{{r.DepartmentName}}</td>
                 <td>{{r.CourseName}}</td>
                 <td>{{r.CoureDescription}}</td>
-                {% if r.AvailableSeats > 0 %}
-                    <td><a href="/OrderPlacing/{{r.AdID}}/{{r.Username}}/{{r.Price}}">Place Order</a></td>
-                {% else %}
-                    <td>Seats Not Available</td>
-                {% endif %}
+                <td>{{r.Location}}</td>
+                <td>{{r.AppointmentTime}}</td>
+                <td>{{r.tutorUsername}}</td>
+                <td>{{r.AvailableSeats}}</td>
+                <td>{{r.Price}}</td>
+                <td>{{r.Total}}</td>
+                <td>{{r.Comments}}</td>  
+                <td>{{r.Status}}</td>               
+                <td>{{r.OrderTime}}</td>
+                <td>{{r.UpdateTime}}</td>  
+
+                {% if r.Status == "Placed" %}
+                <td>
+<a href="/OrderCancelling/{{r.OrderID}}">
+    Cancel
+</a>
+                </td>
+            {% else %}
+            <td> {{r.Status}}  </td>
+            {% endif %}
             </tr>
         {% endfor %}
     </table>
-
-    <a class="myAD" href="/MyAdvertisement">My advertisement</a>
 </body>
 
 

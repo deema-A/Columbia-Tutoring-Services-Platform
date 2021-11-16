@@ -248,6 +248,72 @@ def Advertisement():
   cursor.close()
   return render_template('advertisement.html', **Context)
 
+@app.route('/OrderPlacing/<AdID>/<Username>/<Price>')
+def OrderPlacing(AdID, Username, Price):
+  Context = {}
+  args = (session["Username"], AdID)
+  cursor = g.conn.execute("SELECT OrderID FROM Orders_manage_link WHERE Username = (%s) AND AdID = (%s)", args)
+  result = cursor.fetchone()
+  if result != None:
+    Context = {'message':'You cannot please multiple orders on this advertisement!'}
+    return render_template('dashboard.html', **Context)
+  # If it does not exist
+  cursor = g.conn.execute("SELECT VIPID FROM VIPs_Enroll WHERE EndDate >= now() AT TIME ZONE \'EST\' AND Username = %s", session["Username"])
+  result = cursor.fetchone()
+  if result == None:
+    Context['Price'] = float(Price)
+  else:
+    Context['Price'] = float(Price) * 0.8
+  Context['AdID'] = AdID
+  return render_template('checkout.html', **Context)
+
+@app.route('/checkout/<AdID>/<Price>')
+def checkout(AdID, Price):
+  print("In")
+  args = (Price, 'Placed', session["Username"], AdID)
+  g.conn.execute("INSERT INTO Orders_manage_link (OrderTime, Total, Status, UpdateTime, Username, AdID) \
+    VALUES (now() AT TIME ZONE \'EST\', %s, %s, now() AT TIME ZONE \'EST\', %s, %s)", args)
+  args = (AdID)
+  g.conn.execute("UPDATE Adertisements_manage_associate SET AvailableSeats = AvailableSeats - 1 WHERE AdID = %s", args)
+  args = ('Your order has been succefully placed', session['Username'])
+  g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
+  Context = {'message':'Order Placed Successfully'}
+  return render_template('dashboard.html', **Context)
+
+@app.route('/Orders', methods=['POST', 'GET'])
+def MyOrder():
+  args = (session['Username'])
+  cursor = g.conn.execute('SELECT o.OrderID, o.OrderTime, o.Total, o.Status, o.UpdateTime, \
+    a.Username tutorUsername, a.Location, a.AppointmentTime, a.AvailableSeats , a.Price, a.Comments,\
+    c.CourseName, c,CoureDescription,  d.DepartmentName\
+    FROM Orders_manage_link o,  Adertisements_manage_associate a, Courses_belongs c, Departments d\
+    WHERE d.DepartmentID = a.DepartmentID AND a.DepartmentID = c.DepartmentID AND a.CourseID = c.CourseID\
+    AND o.AdID = a.AdID AND o.Username = (%s)', args)
+  result = cursor.fetchone()
+  store = []
+  document = {}
+  while result != None:
+    document['OrderID'] = result[0]
+    document['OrderTime'] = result[1]
+    document['Total'] = result[2]
+    document['Status'] = result[3]
+    document['UpdateTime'] = result[4]
+    document['tutorUsername'] = result[5]
+    document['Location'] = result[6]
+    document['AppointmentTime'] = result[7]
+    document['AvailableSeats'] = result[8]
+    document['Price'] = result[9]
+    document['Comments'] = result[10]
+    document['CourseName'] = result[11]
+    document['CoureDescription'] = result[12]
+    document['DepartmentName'] = result[13]
+    store.append(document)
+    document = {}
+    result = cursor.fetchone()
+  Context = {'store': store}
+  cursor.close()
+  return render_template('Orders.html', **Context)
+
 @app.route('/MyAdvertisement')
 def MyAdvertisement():
   args = (session['Username'])
