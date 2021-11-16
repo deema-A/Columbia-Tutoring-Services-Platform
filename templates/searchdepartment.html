@@ -118,11 +118,7 @@
               <td>{{e.AdID}}</td>
               <td>{{e.Location}}</td>
               <td>{{e.AppointmentTime}}</td>
-              {% if e.AvailableSeats > 0 %}
-                    <td><a href="/OrderPlacing">Place Order</a></td>
-                {% else %}
-                    <td>Seats Not Available</td>
-                {% endif %}
+              <td>{{e.AvailableSeats}}</td>
               <td>{{e.Price}}</td>
               <td>{{e.Comments}}</td>
               <td>{{e.Username}}</td>

@@ -323,6 +323,17 @@ def newAdInsertion():
   return render_template('dashboard.html', **Context)
 
 # Update advertisement
+@app.route('/MyAdvertisement/Delete/<AdID>')
+def AdDelete(AdID):
+  args = (AdID)
+  g.conn.execute("DELETE FROM Adertisements_manage_associate WHERE AdID = (%s)", args)
+  args = ('Your advertisement has been succefully deleted', session['Username'])
+  g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
+  Context = {'message':'Advertisement deleted Successfully'}
+  return render_template('dashboard.html', **Context)
+
+
+# Update advertisement
 @app.route('/MyAdvertisement/Update/<AdID>')
 def AdUpdate(AdID):
   session['AdID'] = AdID
@@ -522,6 +533,21 @@ def retrieveProfile():
   document = {}
   Context['store2'] = store2
   cursor.close()
+  store3 = []
+  cursor = g.conn.execute("SELECT Score, Comments, Rate_time, Studentsusername, Tutorsusername FROM Rate_by WHERE Tutorsusername = (%s) ORDER BY Rate_time DESC", args)
+  document = {}
+  result = cursor.fetchone()
+  while result != None:
+    document["Score"] = result[0]
+    document["Comments"] = result[1]
+    document["Rate_time"] = result[2]
+    document["Studentsusername"] = result[3]
+    document["Tutorsusername"] = result[4]
+    store3.append(document)
+    document = {}
+    result = cursor.fetchone()
+  Context["store3"] = store3
+  cursor.close()
   return render_template('SearchProfile.html', **Context)
 
 #activeSessions
@@ -561,9 +587,9 @@ def activeSessions():
       document['DepartmentName'] = result[7]
       document['CourseName'] = result[8]
       document['CoureDescription'] = result[9]
-      result = cursor.fetchone()
       store2.append(document)
-  document = {}
+      document = {}
+      result = cursor.fetchone()
   Context['store2'] = store2
   cursor.close()
   return render_template('searchdepartment.html', **Context)
