@@ -278,6 +278,11 @@ def checkout(AdID, Price):
   g.conn.execute("UPDATE Adertisements_manage_associate SET AvailableSeats = AvailableSeats - 1 WHERE AdID = %s", args)
   args = ('Your order has been successfully placed', session['Username'])
   g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
+  cursor = g.conn.execute("SELECT Username FROM Adertisements_manage_associate WHERE AdID = (%s)",AdID)
+  result = cursor.fetchone()
+  args = (f'One Student {session["Username"]} Registered in your advertisement ID {AdID}.', result[0])
+  g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
+  cursor.close()
   Context = {'message':'Order Placed Successfully'}
   return render_template('dashboard.html', **Context)
 
@@ -318,6 +323,26 @@ def MyOrder():
   Context = {'store': store}
   cursor.close()
   return render_template('Orders.html', **Context)
+
+@app.route('/OrderCancelling/<OID>')
+def cancelOrder(OID):
+  args = (OID)
+  cursor = g.conn.execute("SELECT A.AdID, A.Username FROM Orders_manage_link O, Adertisements_manage_associate A \
+    WHERE O.AdID = A.AdID AND OrderID = (%s)", args)
+  g.conn.execute("DELETE FROM Orders_manage_link WHERE OrderID = (%s)", args)
+  result = cursor.fetchone()
+  document= {}
+  document['AdID'] = result[0]
+  document['Username'] = result[1]
+  args = (document['AdID'])
+  g.conn.execute("UPDATE Adertisements_manage_associate SET AvailableSeats = AvailableSeats + 1 WHERE AdID = (%s)", args)
+  cursor.close()
+  args1 = ("An order has been cancelled successfully.",session['Username'])
+  args2 = (f"Student {session['Username']} cancelled the registration of your session #{document['AdID']}", document['Username'])
+  g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args1)
+  g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args2)
+  Context = {"message": "An order has been cancelled successfully."}
+  return render_template('dashboard.html', **Context)
 
 @app.route('/MyAdvertisement')
 def MyAdvertisement():
@@ -396,9 +421,15 @@ def newAdInsertion():
 # Update advertisement
 @app.route('/MyAdvertisement/Delete/<AdID>')
 def AdDelete(AdID):
+  cursor = g.conn.execute("SELECT Username FROM Orders_manage_link WHERE AdID = (%s)", AdID)
+  result = cursor.fetchone()
+  while result != None:
+    args1 = (f"Session {AdID} is cancelled by its owner.", result[0])
+    g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args1)
+    result = cursor.fetchone()
   args = (AdID)
   g.conn.execute("DELETE FROM Adertisements_manage_associate WHERE AdID = (%s)", args)
-  args = ('Your advertisement has been successfully deleted', session['Username'])
+  args = ('Your advertisement has been successfully deleted.', session['Username'])
   g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
   Context = {'message':'Advertisement deleted Successfully'}
   return render_template('dashboard.html', **Context)
@@ -464,6 +495,13 @@ def AdUpdateCheck():
   # message notification
   args = ('Your advertisement has been successfully updated', session['Username'])
   g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
+  # Notify related students to check new information
+  cursor = g.conn.execute("SELECT Username FROM Orders_manage_link WHERE AdID = (%s)", AdID)
+  result = cursor.fetchone()
+  while result != None:
+    args = (f'Session #{AdID} is updated by your tutor please check it.', result[0])
+    g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
+    result = cursor.fetchone()
   Context = {'message':'Advertisement Updated Successfully'}
   return render_template('dashboard.html', **Context)
 
@@ -605,6 +643,86 @@ def VIPCheck():
     return render_template('VIP.html', **context)
   context = {'message':"Congrats!You are a VIP now!"} 
   return render_template('Dashboard.html', **context)
+
+@app.route('/Rating')
+def Rating():
+  cursor = g.conn.execute("SELECT A.Username FROM Orders_manage_link O, Adertisements_manage_associate A \
+    WHERE O.AdID = A.AdID AND O.Status = 'SessionEnd' AND O.Username = (%s)", session['Username'])
+  result = cursor.fetchone()
+  store = []
+  document = {}
+  while result != None:
+    document['Tutorname'] = result[0]
+    store.append(document)
+    document = {}
+    result = cursor.fetchone()
+  Context = {'store': store}
+  cursor.close()
+  # User can browse their own rating
+  cursor = g.conn.execute("SELECT Score, Comments, Rate_time, Tutorsusername FROM Rate_by WHERE Studentsusername = (%s)", session['Username'])
+  result = cursor.fetchone()
+  store2 = []
+  document = {}
+  while result != None:
+    document['Score'] = result[0]
+    document['Comments'] = result[1]
+    document['Rate_time'] = result[2]
+    document['Tutorsusername'] = result[3]
+    store2.append(document)
+    document = {}
+    result = cursor.fetchone()
+  Context['store2'] = store2
+  cursor.close()
+  return render_template("rating.html", **Context)
+
+@app.route('/RatingSubmit', methods=["POST", "GET"])
+def RatingSubmit():
+  ScoreInput = request.form['ScoreInput']
+  Comments = request.form['CommentsInput']
+  Tutors = request.form['tutorsInput']
+  args = (session['Username'], Tutors)
+  cursor = g.conn.execute("SELECT Score FROM Rate_by WHERE Studentsusername = (%s) AND Tutorsusername = (%s)", args)
+  result = cursor.fetchone()
+  # No exist, insert
+  if result == None:
+    args = [ScoreInput, Comments, session['Username'], Tutors]
+    g.conn.execute("INSERT INTO Rate_by VALUES (%s,%s,now() AT TIME ZONE \'EST\', %s, %s)", args)
+  # If exist, update
+  else:
+    args = [ScoreInput, Comments, session['Username'], Tutors]
+    g.conn.execute("UPDATE Rate_by SET Score = (%s), Comments = (%s), Rate_time = now() AT TIME ZONE \'EST\' WHERE \
+      Studentsusername = (%s) AND Tutorsusername = (%s)", args)
+  # Just need to fix average score.
+  cursor = g.conn.execute("SELECT Score FROM Rate_by WHERE Tutorsusername = (%s)", Tutors)
+  result = cursor.fetchone()
+  sumofScore = 0
+  count = 0
+  while result != None:
+    sumofScore += int(result[0])
+    count += 1
+    result = cursor.fetchone()
+  averageScore = sumofScore / count
+  totalrate = count
+  args = [averageScore, totalrate, Tutors]
+  g.conn.execute("UPDATE Tutors SET Score = (%s), NumberRate = (%s) WHERE Username = (%s)", args)
+
+  cursor = g.conn.execute('SELECT Username FROM Tutors ORDER BY Score DESC LIMIT 5')
+  result = cursor.fetchone()
+  Context = {}
+  store = []
+  document = {}
+  Context['message']= 'Thanks for your rating. Here are the five top rated tutors we recommended to you if you want to register another session.'
+  if result is None:
+    Context['message']= 'No Available Tutors!'
+  else:
+    while result != None:
+      document['Username'] = result[0]
+      store.append(document)
+      result = cursor.fetchone()
+      document = {}
+  Context['store'] = store
+  cursor.close()
+  return render_template('topfive.html', **Context)
 
 @app.route('/SearchProfile', methods=["POST", "GET"])
 def SearchProfile():
