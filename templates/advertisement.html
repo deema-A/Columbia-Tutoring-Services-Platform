@@ -81,6 +81,8 @@
       <li><a href="/Logout">Log Out</a></li>
     </ul>
     <a class="myAD" href="/searchdepartment">Search By Department</a>
+    <a class="myAD" href="/searchtutors">Search By Tutor</a>
+    <a class="myAD" href="/searchcourses">Search By Course</a>
     <!-- Can view all unexpired advertisements -->
     <table>
         <tr>
@@ -104,7 +106,7 @@
                 <td>{{r.AvailableSeats}}</td>
                 <td>{{r.Price}}</td>
                 <td>{{r.Comments}}</td>
-                <td>{{r.Username}}</td>
+                <td><a href="/Browse/{{r.Username}}">{{r.Username}}</a></td>
                 <td>{{r.DepartmentName}}</td>
                 <td>{{r.CourseName}}</td>
                 <td>{{r.CoureDescription}}</td>

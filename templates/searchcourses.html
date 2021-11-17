@@ -87,52 +87,52 @@
     </ul>
     <!-- Can view all advertisements but only can modify unexpired advertisements-->
     
-    <form method="POST" action="/activeSessions">
+    <form method="POST" action="/activeSessionsCourse">
         <div>
-            <label for="Depts">Departments:</label>
-            <select name="DeptsInput" id="Depts" required>
+            
+            <label for="course">courses:</label>
+            <select name="courseInput" id="course" required>
                 {% for r in store %}
-                <option value="{{r.DepartmentID}}">{{r.DepartmentName}}</option>
+                <option value="{{r.DepartmentID}}/{{r.CourseID}}">{{r.CourseName}}</option>
                 {% endfor %}
             </select>
-        <input type="submit" value="Browsing active tutoring sessions">
+        <input type="submit" value="Browsing by Course Name">
       </div>
       </form>
       
-    
-          <table>
-            <tr>
-              <th>Ad ID</th>
-              <th>Location</th>
-              <th>Appointment Time</th>
-              <th>Available Seats</th>
-              <th>Price</th>
-              <th>Comments</th>
-              <th>Tutor User Name</th>
-              <th>Department Name</th>
-              <th>Course Name</th>
-              <th>Course Description</th>
-            </tr>
-            {% for e in store2 %}
-            <tr>
-              <td>{{e.AdID}}</td>
-              <td>{{e.Location}}</td>
-              <td>{{e.AppointmentTime}}</td>
-              {% if e.AvailableSeats > 0 %}
-              <td><a href="/OrderPlacing/{{e.AdID}}/{{e.Username}}/{{e.Price}}">Place Order</a></td>
-              {% else %}
-                <td>Seats Not Available</td>
-              {% endif %}
-              <td>{{e.Price}}</td>
-              <td>{{e.Comments}}</td>
-              <td><a href="/Browse/{{e.Username}}">{{e.Username}}</a></td>
-              <td>{{e.DepartmentName}}</td>
-              <td>{{e.CourseName}}</td>
-              <td>{{e.CoureDescription}}</td>
-            </tr>
-            {% endfor %}
-          </table>  
-
+      <table>
+        <tr>
+          <th>Ad ID</th>
+          <th>Location</th>
+          <th>Appointment Time</th>
+          <th>Available Seats</th>
+          <th>Price</th>
+          <th>Comments</th>
+          <th>Tutor User Name</th>
+          <th>Department Name</th>
+          <th>Course Name</th>
+          <th>Course Description</th>
+        </tr>
+        {% for e in store2 %}
+        <tr>
+          <td>{{e.AdID}}</td>
+          <td>{{e.Location}}</td>
+          <td>{{e.AppointmentTime}}</td>
+          {% if e.AvailableSeats > 0 %}
+          <td><a href="/OrderPlacing/{{e.AdID}}/{{e.Username}}/{{e.Price}}">Place Order</a></td>
+      {% else %}
+          <td>Seats Not Available</td>
+      {% endif %}
+          <td>{{e.Price}}</td>
+          <td>{{e.Comments}}</td>
+          <td><a href="/Browse/{{e.Username}}">{{e.Username}}</a></td>
+          <td>{{e.DepartmentName}}</td>
+          <td>{{e.CourseName}}</td>
+          <td>{{e.CoureDescription}}</td>
+        </tr>
+        {% endfor %}
+      </table>  
+         
     </body>
     
 </html>

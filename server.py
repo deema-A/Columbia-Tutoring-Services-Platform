@@ -17,6 +17,7 @@ from flask.globals import session
 from sqlalchemy import *
 from sqlalchemy.pool import NullPool
 from flask import Flask, request, render_template, g, redirect, Response
+from werkzeug.datastructures import ContentSecurityPolicy
 
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
@@ -275,17 +276,23 @@ def checkout(AdID, Price):
     VALUES (now() AT TIME ZONE \'EST\', %s, %s, now() AT TIME ZONE \'EST\', %s, %s)", args)
   args = (AdID)
   g.conn.execute("UPDATE Adertisements_manage_associate SET AvailableSeats = AvailableSeats - 1 WHERE AdID = %s", args)
-  args = ('Your order has been succefully placed', session['Username'])
+  args = ('Your order has been successfully placed', session['Username'])
   g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
   Context = {'message':'Order Placed Successfully'}
   return render_template('dashboard.html', **Context)
 
 @app.route('/Orders', methods=['POST', 'GET'])
 def MyOrder():
+  cursor = g.conn.execute("SELECT o.AdID FROM Orders_manage_link o, Adertisements_manage_associate a WHERE o.AdID = a.AdID \
+    AND a.AppointmentTime < now() AT TIME ZONE \'EST\' AND o.Username = (%s)", session["Username"])
+  result = cursor.fetchone()
+  while result != None:
+    args = (result[0])
+    g.conn.execute("UPDATE Orders_manage_link SET Status = 'SessionEnd' WHERE AdID = (%s)", args)
+    result = cursor.fetchone()
   args = (session['Username'])
-  cursor = g.conn.execute('SELECT o.OrderID, o.OrderTime, o.Total, o.Status, o.UpdateTime, \
-    a.Username tutorUsername, a.Location, a.AppointmentTime, a.AvailableSeats , a.Price, a.Comments,\
-    c.CourseName, c,CoureDescription,  d.DepartmentName\
+  cursor = g.conn.execute('SELECT o.OrderID, o.OrderTime, o.Total, o.Status, o.UpdateTime, o.AdID,\
+    a.Username tutorUsername, a.Location, a.AppointmentTime, a.Comments, c.CourseName, d.DepartmentName\
     FROM Orders_manage_link o,  Adertisements_manage_associate a, Courses_belongs c, Departments d\
     WHERE d.DepartmentID = a.DepartmentID AND a.DepartmentID = c.DepartmentID AND a.CourseID = c.CourseID\
     AND o.AdID = a.AdID AND o.Username = (%s)', args)
@@ -298,15 +305,13 @@ def MyOrder():
     document['Total'] = result[2]
     document['Status'] = result[3]
     document['UpdateTime'] = result[4]
-    document['tutorUsername'] = result[5]
-    document['Location'] = result[6]
-    document['AppointmentTime'] = result[7]
-    document['AvailableSeats'] = result[8]
-    document['Price'] = result[9]
-    document['Comments'] = result[10]
-    document['CourseName'] = result[11]
-    document['CoureDescription'] = result[12]
-    document['DepartmentName'] = result[13]
+    document['AdID'] = result[5]
+    document['tutorUsername'] = result[6]
+    document['Location'] = result[7]
+    document['AppointmentTime'] = result[8]
+    document['Comments'] = result[9]
+    document['CourseName'] = result[10]
+    document['DepartmentName'] = result[11]
     store.append(document)
     document = {}
     result = cursor.fetchone()
@@ -380,7 +385,7 @@ def newAdInsertion():
     args = (location, AppointmentTime, AvailableSeats, Price, CommentsInput, session['Username'], Department, Course)
     g.conn.execute('INSERT INTO Adertisements_manage_associate (Location, AppointmentTime, AvailableSeats, Price, Comments, Username, DepartmentID, CourseID) VALUES\
       (%s, %s, %s, %s, %s, %s, %s, %s)', args)
-    args = ('Your advertisement has been succefully placed', session['Username'])
+    args = ('Your advertisement has been successfully placed', session['Username'])
     g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
   except Exception as e:
     Context = {'message': e}
@@ -393,7 +398,7 @@ def newAdInsertion():
 def AdDelete(AdID):
   args = (AdID)
   g.conn.execute("DELETE FROM Adertisements_manage_associate WHERE AdID = (%s)", args)
-  args = ('Your advertisement has been succefully deleted', session['Username'])
+  args = ('Your advertisement has been successfully deleted', session['Username'])
   g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
   Context = {'message':'Advertisement deleted Successfully'}
   return render_template('dashboard.html', **Context)
@@ -457,7 +462,7 @@ def AdUpdateCheck():
     Context = {'message': e}
     return render_template('dashboard.html', **Context)
   # message notification
-  args = ('Your advertisement has been succefully updated', session['Username'])
+  args = ('Your advertisement has been successfully updated', session['Username'])
   g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
   Context = {'message':'Advertisement Updated Successfully'}
   return render_template('dashboard.html', **Context)
@@ -485,6 +490,56 @@ def MyProfiles():
   Context['GPA'] = result[10]
 
   return render_template('MyProfile.html', **Context)
+
+@app.route('/Browse/<Username>')
+def BrowseTutor(Username):
+  PID = Username
+  cursor = g.conn.execute('SELECT Username from Users')
+  result = cursor.fetchone()
+  store = []
+  document = {}
+  while result != None:
+    document['Username'] = result[0]
+    store.append(document)
+    document = {}
+    result = cursor.fetchone()
+  Context = {'store': store}
+  cursor.close()
+  args = (PID)
+  cursor = g.conn.execute("SELECT u.Username, u.RealName, u.Email, t.Score, t.NumberRate,\
+    t.Skills , s.GPA\
+    FROM Users u, Tutors t, Students  s \
+    where s.Username = t.Username and s.Username = u.Username and u.Username = (%s)",args)
+  result = cursor.fetchone()
+  store2 = []
+  document = {}
+  document['Username'] = result[0]
+  document['RealName'] = result[1]
+  document['Email'] = result[2]
+  document['Score'] = result[3]
+  document['NumberRate'] = result[4]
+  document['Skills'] = result[5]
+  document['GPA'] = result[6]
+  store2.append(document)
+  document = {}
+  Context['store2'] = store2
+  cursor.close()
+  store3 = []
+  cursor = g.conn.execute("SELECT Score, Comments, Rate_time, Studentsusername, Tutorsusername FROM Rate_by WHERE Tutorsusername = (%s) ORDER BY Rate_time DESC", args)
+  document = {}
+  result = cursor.fetchone()
+  while result != None:
+    document["Score"] = result[0]
+    document["Comments"] = result[1]
+    document["Rate_time"] = result[2]
+    document["Studentsusername"] = result[3]
+    document["Tutorsusername"] = result[4]
+    store3.append(document)
+    document = {}
+    result = cursor.fetchone()
+  Context["store3"] = store3
+  cursor.close()
+  return render_template('SearchProfile.html', **Context)
 
 @app.route('/profileCheck', methods = ['POST'])
 def ProfileCheck():
@@ -694,6 +749,128 @@ def searchdepartment():
   Context = {'store': store}
   cursor.close()
   return render_template('searchdepartment.html', **Context)
+
+@app.route('/searchtutors', methods=["POST", "GET"])
+def searchtutors():
+  cursor = g.conn.execute('SELECT Username from Tutors')
+  result = cursor.fetchone()
+  store = []
+  document = {}
+  while result != None:
+    document['Username'] = result[0]
+    store.append(document)
+    document = {}
+    result = cursor.fetchone()
+  Context = {'store': store}
+  cursor.close()
+  return render_template('searchtutors.html', **Context)
+
+@app.route('/searchcourses', methods=["POST", "GET"])
+def searchcourses():
+  cursor = g.conn.execute('SELECT CourseName, CourseID, DepartmentID  FROM Courses_belongs')
+  result = cursor.fetchone()
+  store = []
+  document = {}
+  while result != None:
+    document['CourseName'] = result[0]
+    document['CourseID'] = result[1]
+    document['DepartmentID'] = result[2]
+    store.append(document)
+    document = {}
+    result = cursor.fetchone()
+  Context = {'store': store}
+  cursor.close()
+  return render_template('searchcourses.html', **Context)
+
+#activeSessions
+@app.route('/activeSessionsCourse', methods=["POST", "GET"])
+def activeSessionsCourse():
+  DCID = request.form['courseInput'].split('/')
+  DID = DCID[0]
+  CID = DCID[1]
+  cursor = g.conn.execute('SELECT CourseName, CourseID, DepartmentID FROM Courses_belongs')
+  result = cursor.fetchone()
+  store = []
+  document = {}
+  while result != None:
+    document['CourseName'] = result[0]
+    document['CourseID'] = result[1]
+    document['DepartmentID'] = result[2]
+    store.append(document)
+    document = {}
+    result = cursor.fetchone()
+  Context = {'store': store}
+  cursor.close()
+  args = (CID, DID)
+  cursor = g.conn.execute('SELECT AD.AdID, AD.Location, AD.AppointmentTime, AD.AvailableSeats, AD.Price, AD.Comments, AD.Username, D.DepartmentName, C.CourseName, C.CoureDescription \
+    FROM Adertisements_manage_associate AD, Departments D, Courses_belongs C WHERE AD.DepartmentID = D.DepartmentID  AND AD.CourseID = C.CourseID AND \
+    AD.DepartmentID = C.DepartmentID AND C.CourseID = (%s) AND AppointmentTime > now() AT TIME ZONE \'EST\' AND D.DepartmentID = (%s)', args)
+  result = cursor.fetchone()
+  store2 = []
+  document = {}
+  if result is None:
+    Context['message']= 'No Available Sessions!'
+  else:
+    while result != None:
+      document['AdID'] = result[0]
+      document['Location'] = result[1]
+      document['AppointmentTime'] = result[2]
+      document['AvailableSeats'] = result[3]
+      document['Price'] = result[4]
+      document['Comments'] = result[5]
+      document['Username'] = result[6]
+      document['DepartmentName'] = result[7]
+      document['CourseName'] = result[8]
+      document['CoureDescription'] = result[9]
+      store2.append(document)
+      document = {}
+      result = cursor.fetchone()
+  Context['store2'] = store2
+  cursor.close()
+  return render_template('searchcourses.html', **Context)
+
+#activeSessions
+@app.route('/activeSessionsTutors', methods=["POST", "GET"])
+def activeSessionsTutors():
+  TID = request.form['tutorInput']
+  cursor = g.conn.execute('SELECT Username from Tutors')
+  result = cursor.fetchone()
+  store = []
+  document = {}
+  while result != None:
+    document['Username'] = result[0]
+    store.append(document)
+    document = {}
+    result = cursor.fetchone()
+  Context = {'store': store}
+  cursor.close()
+  args = (TID)
+  cursor = g.conn.execute('SELECT AD.AdID, AD.Location, AD.AppointmentTime, AD.AvailableSeats, AD.Price, AD.Comments, AD.Username, D.DepartmentName, C.CourseName, C.CoureDescription \
+    FROM Adertisements_manage_associate AD, Departments D, Courses_belongs C WHERE AD.DepartmentID = D.DepartmentID  AND AD.CourseID = C.CourseID AND \
+    AD.DepartmentID = C.DepartmentID AND AppointmentTime >= now() AT TIME ZONE \'EST\' AND AD.Username = (%s)', args)
+  result = cursor.fetchone()
+  store2 = []
+  document = {}
+  if result is None:
+    Context['message']= 'No Available Sessions!'
+  else:
+    while result != None:
+      document['AdID'] = result[0]
+      document['Location'] = result[1]
+      document['AppointmentTime'] = result[2]
+      document['AvailableSeats'] = result[3]
+      document['Price'] = result[4]
+      document['Comments'] = result[5]
+      document['Username'] = result[6]
+      document['DepartmentName'] = result[7]
+      document['CourseName'] = result[8]
+      document['CoureDescription'] = result[9]
+      store2.append(document)
+      document = {}
+      result = cursor.fetchone()
+  Context['store2'] = store2
+  cursor.close()
+  return render_template('searchtutors.html', **Context)
 
 # Example of adding new data to the database
 '''
