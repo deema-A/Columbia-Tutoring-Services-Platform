@@ -100,6 +100,7 @@ def teardown_request(exception):
 #
 @app.route('/')
 def index():
+  # Login page
   """
   request is a special object that Flask provides to access web request information:
 
@@ -159,11 +160,13 @@ def index():
 
 @app.route('/DashBoard')
 def DashBoard():
+  # to display the dashboard page
   Context = {'message': "Welcome to dashboard " + session['Username']}
   return render_template('dashboard.html', **Context)
 
 @app.route('/Registration', methods=['POST', 'GET'])
 def registration():
+  # to display the registration page
   context = {'message':'Welcome to the registration page.'}
   return render_template("registration.html", **context)
 
@@ -188,7 +191,9 @@ def loginCheck():
 
 @app.route('/registrationCheck', methods = ['POST'])
 def registrationCheck():
+  # to check the user's inputs for registration
   try:
+    #Getting inputs to prepare the parameters
     Username = request.form['usernameInput']
     Password = request.form['passwordInput']
     RealName = request.form['realnameInput']
@@ -202,31 +207,29 @@ def registrationCheck():
     argsUsers = (Username, Password, RealName, Email, PhoneNumber, RoutingNumber, BankAccount, AccountType)
     argsTutors = (Username, Skills)
     argsStudents = (Username, float(GPA))
+    # update three tables related to the new user
     g.conn.execute('INSERT INTO Users VALUES (%s, %s, %s, %s, %s, %s, %s, %s)', argsUsers)
     g.conn.execute('INSERT INTO Tutors(Username, Skills) VALUES (%s, %s)', argsTutors)
     g.conn.execute('INSERT INTO Students(Username, GPA) VALUES (%s, %s)',argsStudents)
+    # Send welcome notification to this user
+    argsNotification = ("Welcome to Columbia Tutoring Center!", Username)
+    g.conn.execute('INSERT INTO NotificationBoxes_access (time, content, username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', argsNotification)
+    context = {'message': 'Register Successfully And Please Login!'}
   except Exception as e:
-    context = {'message':e}
+    context = {'message':"please check your input!"}
     return render_template('registration.html', **context)
-
-  argsNotification = ("Welcome to Columbia Tutoring Center!", Username)
-  g.conn.execute('INSERT INTO NotificationBoxes_access (time, content, username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', argsNotification)
-  context = {'message': 'Register Successfully And Please Login!'}
   return render_template('index.html', **context)
 
-'''
-@app.route('/another')
-def another():
-  return render_template("another.html")
-'''
 @app.route('/Logout')
 def Logout():
+  # to enable the user to log out from the system
   session['Username'] = None
   Context = {'message': "Logout Successfully"}
   return render_template('index.html', **Context)
 
 @app.route('/Advertisement')
 def Advertisement():
+  #feting all active advertisements
   cursor = g.conn.execute('SELECT AD.AdID, AD.Location, AD.AppointmentTime, AD.AvailableSeats, AD.Price, AD.Comments, AD.Username, D.DepartmentName, C.CourseName, C.CoureDescription \
     FROM Adertisements_manage_associate AD, Departments D, Courses_belongs C WHERE AD.DepartmentID = D.DepartmentID  AND AD.CourseID = C.CourseID AND \
     AD.DepartmentID = C.DepartmentID AND AD.AppointmentTime >= now() AT TIME ZONE \'EST\'')
@@ -234,6 +237,7 @@ def Advertisement():
   store = []
   document = {}
   while result != None:
+    #getting the output to prepare the parameters
     document['AdID'] = result[0]
     document['Location'] = result[1]
     document['AppointmentTime'] = result[2]
@@ -253,14 +257,17 @@ def Advertisement():
 
 @app.route('/OrderPlacing/<AdID>/<Username>/<Price>')
 def OrderPlacing(AdID, Username, Price):
+  # to place a new order 
   Context = {}
   args = (session["Username"], AdID)
+  # obtaining the order ID of the current advertisement related to the current user
   cursor = g.conn.execute("SELECT OrderID FROM Orders_manage_link WHERE Username = (%s) AND AdID = (%s)", args)
   result = cursor.fetchone()
   if result != None:
     Context = {'message':'You cannot please multiple orders on this advertisement!'}
     return render_template('dashboard.html', **Context)
-  # If it does not exist
+  # If it does not exist 
+  # check if the current user enrolled in a VIP membership if so they will be offered 20% discount 
   cursor = g.conn.execute("SELECT VIPID FROM VIPs_Enroll WHERE EndDate >= now() AT TIME ZONE \'EST\' AND Username = %s", session["Username"])
   result = cursor.fetchone()
   if result == None:
@@ -272,17 +279,21 @@ def OrderPlacing(AdID, Username, Price):
 
 @app.route('/checkout/<AdID>/<Price>')
 def checkout(AdID, Price):
-  print("In")
+  # check the order information 
   args = (Price, 'Placed', session["Username"], AdID)
+  # inserting into orders 
   g.conn.execute("INSERT INTO Orders_manage_link (OrderTime, Total, Status, UpdateTime, Username, AdID) \
     VALUES (now() AT TIME ZONE \'EST\', %s, %s, now() AT TIME ZONE \'EST\', %s, %s)", args)
   args = (AdID)
+  #updating the advertisement 
   g.conn.execute("UPDATE Adertisements_manage_associate SET AvailableSeats = AvailableSeats - 1 WHERE AdID = %s", args)
   args = ('Your order has been successfully placed', session['Username'])
+  #sending message to the current user 
   g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
   cursor = g.conn.execute("SELECT Username FROM Adertisements_manage_associate WHERE AdID = (%s)",AdID)
   result = cursor.fetchone()
   args = (f'One Student {session["Username"]} Registered in your advertisement ID {AdID}.', result[0])
+  #sending message to the corresponding tutor 
   g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
   cursor.close()
   Context = {'message':'Order Placed Successfully'}
@@ -290,14 +301,17 @@ def checkout(AdID, Price):
 
 @app.route('/Orders', methods=['POST', 'GET'])
 def MyOrder():
+  # obtaining the expired orders' information related to the current user 
   cursor = g.conn.execute("SELECT o.AdID FROM Orders_manage_link o, Adertisements_manage_associate a WHERE o.AdID = a.AdID \
     AND a.AppointmentTime < now() AT TIME ZONE \'EST\' AND o.Username = (%s)", session["Username"])
   result = cursor.fetchone()
   while result != None:
     args = (result[0])
+    # update the status of the expired orders
     g.conn.execute("UPDATE Orders_manage_link SET Status = 'SessionEnd' WHERE AdID = (%s)", args)
     result = cursor.fetchone()
   args = (session['Username'])
+  # obtaining the orders' information related to the current user 
   cursor = g.conn.execute('SELECT o.OrderID, o.OrderTime, o.Total, o.Status, o.UpdateTime, o.AdID,\
     a.Username tutorUsername, a.Location, a.AppointmentTime, a.Comments, c.CourseName, d.DepartmentName\
     FROM Orders_manage_link o,  Adertisements_manage_associate a, Courses_belongs c, Departments d\
@@ -307,6 +321,7 @@ def MyOrder():
   store = []
   document = {}
   while result != None:
+    # getting the output to prepare the paramaters
     document['OrderID'] = result[0]
     document['OrderTime'] = result[1]
     document['Total'] = result[2]
@@ -329,25 +344,32 @@ def MyOrder():
 @app.route('/OrderCancelling/<OID>')
 def cancelOrder(OID):
   args = (OID)
+  #obtaining the tutor information related to this order
   cursor = g.conn.execute("SELECT A.AdID, A.Username FROM Orders_manage_link O, Adertisements_manage_associate A \
     WHERE O.AdID = A.AdID AND OrderID = (%s)", args)
+  #delete the order
   g.conn.execute("DELETE FROM Orders_manage_link WHERE OrderID = (%s)", args)
   result = cursor.fetchone()
   document= {}
+  # getting the output to prepare the parameters
   document['AdID'] = result[0]
   document['Username'] = result[1]
   args = (document['AdID'])
+  # update corresponding advertisement 
   g.conn.execute("UPDATE Adertisements_manage_associate SET AvailableSeats = AvailableSeats + 1 WHERE AdID = (%s)", args)
   cursor.close()
   args1 = ("An order has been cancelled successfully.",session['Username'])
   args2 = (f"Student {session['Username']} cancelled the registration of your session #{document['AdID']}", document['Username'])
+  # send a notification message to the current user 
   g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args1)
+  # send a notification message to the related tutor 
   g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args2)
   Context = {"message": "An order has been cancelled successfully."}
   return render_template('dashboard.html', **Context)
 
 @app.route('/MyAdvertisement')
 def MyAdvertisement():
+  # obtaining the advertisements of the current user  
   args = (session['Username'])
   cursor = g.conn.execute('SELECT AD.AdID, AD.Location, AD.AppointmentTime, AD.AvailableSeats, AD.Price, AD.Comments, AD.Username, D.DepartmentName, C.CourseName, C.CoureDescription \
     FROM Adertisements_manage_associate AD, Departments D, Courses_belongs C WHERE AD.DepartmentID = D.DepartmentID  AND AD.CourseID = C.CourseID AND \
@@ -356,6 +378,7 @@ def MyAdvertisement():
   store = []
   document = {}
   while result != None:
+    # getting the output to prepare the parameters
     document['AdID'] = result[0]
     document['Location'] = result[1]
     document['AppointmentTime'] = result[2]
@@ -371,18 +394,20 @@ def MyAdvertisement():
     result = cursor.fetchone()
   Context = {'store': store}
   cursor.close()
+  # obtain the current time
   cursor = g.conn.execute('SELECT now() AT TIME ZONE \'EST\'')
   # only one result, fetchone is enough
   nowTime = cursor.fetchone()
   Context['nowTime'] = nowTime[0]
   cursor.close()
-  # Departments and courses
+  # Obtain the Departments and courses information
   cursor = g.conn.execute('SELECT C.DepartmentID, D.DepartmentName, C.CourseID, C.CourseName \
     FROM Departments D, Courses_belongs C WHERE D.DepartmentID = C.DepartmentID')
   result = cursor.fetchone()
   store = []
   document = {}
   while result != None:
+    # getting the output to prepare the parameters
     document['DepartmentID'] = result[0]
     document['DepartmentName'] = result[1]
     document['CourseID'] = result[2]
@@ -396,26 +421,29 @@ def MyAdvertisement():
 
 @app.route('/newAdInsertion', methods=['POST'])
 def newAdInsertion():
-  location = request.form['LocationInput']
-  AppointmentTime = request.form['AppointmentTimeDateInput'] + ' ' + request.form['AppointmentTimeTimeInput'] + ':00'
-  AvailableSeats = request.form['AvailableSeatsInput']
-  Price = request.form['PriceInput']
-  CommentsInput = request.form['CommentsInput']
-  DepartmentCourseInput = request.form['DepartmentCourseInput'].split('/')
-  Department = DepartmentCourseInput[0]
-  Course = DepartmentCourseInput[1]
   try:
+    #getting the input to prepare the parameterss
+    location = request.form['LocationInput']
+    AppointmentTime = request.form['AppointmentTimeDateInput'] + ' ' + request.form['AppointmentTimeTimeInput'] + ':00'
+    AvailableSeats = request.form['AvailableSeatsInput']
+    Price = request.form['PriceInput']
+    CommentsInput = request.form['CommentsInput']
+    DepartmentCourseInput = request.form['DepartmentCourseInput'].split('/')
+    Department = DepartmentCourseInput[0]
+    Course = DepartmentCourseInput[1]
     temp = datetime.datetime.strptime(AppointmentTime, '%Y-%m-%d %H:%M:%S')
     if temp < datetime.datetime.now():
       Context = {'message': 'Please input a future appoinment time'}
       return render_template('dashboard.html', **Context)
     args = (location, AppointmentTime, AvailableSeats, Price, CommentsInput, session['Username'], Department, Course)
+    # insert new advertisement 
     g.conn.execute('INSERT INTO Adertisements_manage_associate (Location, AppointmentTime, AvailableSeats, Price, Comments, Username, DepartmentID, CourseID) VALUES\
       (%s, %s, %s, %s, %s, %s, %s, %s)', args)
     args = ('Your advertisement has been successfully placed', session['Username'])
+    # insert new notification 
     g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
   except Exception as e:
-    Context = {'message': e}
+    Context = {'message': "Please check your input!"}
     return render_template('dashboard.html', **Context)
   Context = {'message':'Advertisement Placed Successfully'}
   return render_template('dashboard.html', **Context)
@@ -423,29 +451,35 @@ def newAdInsertion():
 # Update advertisement
 @app.route('/MyAdvertisement/Delete/<AdID>')
 def AdDelete(AdID):
+  #retreive the username of the student related to that advertisement 
   cursor = g.conn.execute("SELECT Username FROM Orders_manage_link WHERE AdID = (%s)", AdID)
   result = cursor.fetchone()
   while result != None:
     args1 = (f"Session {AdID} is cancelled by its owner.", result[0])
+    # sent a notification to each student
     g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args1)
     result = cursor.fetchone()
   args = (AdID)
+  # delete this advertisement
   g.conn.execute("DELETE FROM Adertisements_manage_associate WHERE AdID = (%s)", args)
   args = ('Your advertisement has been successfully deleted.', session['Username'])
+  # sent a notification to the current user
   g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
   Context = {'message':'Advertisement deleted Successfully'}
   return render_template('dashboard.html', **Context)
 
 
-# Update advertisement
+# Prepare for updating advertisement
 @app.route('/MyAdvertisement/Update/<AdID>')
 def AdUpdate(AdID):
+  #prepare the parameters
   session['AdID'] = AdID
   Context = {}
   args = (AdID)
+  #retreving the advertisement's information 
   cursor = g.conn.execute('SELECT AD.Location, AD.AppointmentTime, AD.AvailableSeats, AD.Price, AD.Comments \
     FROM Adertisements_manage_associate AD WHERE AD.AdID = (%s)', args)
-  # Only one ad will be returned because AdID is a primary key.
+  # Only one ad will be returned because AdID is a primary key
   result = cursor.fetchone()
   Context['Location'] = result[0]
   Context['AppointmentTime'] = result[1]
@@ -453,7 +487,7 @@ def AdUpdate(AdID):
   Context['Price'] = result[3]
   Context['Comments'] = result[4]
   cursor.close()
-  # Departments and courses
+  # #retreving the departments' and courses' information
   cursor = g.conn.execute('SELECT C.DepartmentID, D.DepartmentName, C.CourseID, C.CourseName \
     FROM Departments D, Courses_belongs C WHERE D.DepartmentID = C.DepartmentID')
   result = cursor.fetchone()
@@ -473,16 +507,18 @@ def AdUpdate(AdID):
 
 @app.route('/AdUpdateCheck', methods = ['POST'])
 def AdUpdateCheck():
-  AdID = session['AdID']
-  location = request.form['LocationInput']
-  AppointmentTime = request.form['AppointmentTimeDateInput'] + ' ' + request.form['AppointmentTimeTimeInput'] + ':00'
-  AvailableSeats = request.form['AvailableSeatsInput']
-  Price = request.form['PriceInput']
-  CommentsInput = request.form['CommentsInput']
-  DepartmentCourseInput = request.form['DepartmentCourseInput'].split('/')
-  Department = DepartmentCourseInput[0]
-  Course = DepartmentCourseInput[1]
+  #This to update the advertisement information
   try:
+    # Getting the input to prepare the parameters
+    AdID = session['AdID']
+    location = request.form['LocationInput']
+    AppointmentTime = request.form['AppointmentTimeDateInput'] + ' ' + request.form['AppointmentTimeTimeInput'] + ':00'
+    AvailableSeats = request.form['AvailableSeatsInput']
+    Price = request.form['PriceInput']
+    CommentsInput = request.form['CommentsInput']
+    DepartmentCourseInput = request.form['DepartmentCourseInput'].split('/')
+    Department = DepartmentCourseInput[0]
+    Course = DepartmentCourseInput[1]
     temp = datetime.datetime.strptime(AppointmentTime, '%Y-%m-%d %H:%M:%S')
     if temp < datetime.datetime.now():
       Context = {'message': 'Please input a future appoinment time'}
@@ -491,31 +527,33 @@ def AdUpdateCheck():
     args = (location, AppointmentTime, AvailableSeats, Price, CommentsInput, Department, Course, AdID)
     g.conn.execute('UPDATE Adertisements_manage_associate SET Location=(%s), AppointmentTime=(%s), AvailableSeats=(%s), Price=(%s), Comments=(%s),\
       DepartmentID=(%s), CourseID=(%s) WHERE AdID=(%s)',args)
-  except Exception as e:
-    Context = {'message': e}
-    return render_template('dashboard.html', **Context)
-  # message notification
-  args = ('Your advertisement has been successfully updated', session['Username'])
-  g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
-  # Notify related students to check new information
-  cursor = g.conn.execute("SELECT Username FROM Orders_manage_link WHERE AdID = (%s)", AdID)
-  result = cursor.fetchone()
-  while result != None:
-    args = (f'Session #{AdID} is updated by your tutor please check it.', result[0])
+
+    # message notification
+    args = ('Your advertisement has been successfully updated', session['Username'])
     g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
+    # Notify related students to check new information
+    cursor = g.conn.execute("SELECT Username FROM Orders_manage_link WHERE AdID = (%s)", AdID)
     result = cursor.fetchone()
-  Context = {'message':'Advertisement Updated Successfully'}
+    while result != None:
+      args = (f'Session #{AdID} is updated by your tutor please check it.', result[0])
+      g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
+      result = cursor.fetchone()
+    Context = {'message':'Advertisement Updated Successfully'}
+  except Exception as e:
+    Context = {'message': "Please check your input!"}
+    return render_template('dashboard.html', **Context)
   return render_template('dashboard.html', **Context)
 
 @app.route('/MyProfile')
 def MyProfiles():
-  #select query join tutors+ student+users
+  #This will display the profile of the current user showing his/her personal information that he/she can edit
   cursor = g.conn.execute("SELECT u.Password, u.RealName, u.Email, u.PhoneNumber, u.RoutingNumber, u.BankAccount, u.AccountType, t.Score, t.NumberRate,\
     t.Skills , s.GPA\
     FROM Users u, Tutors t, Students  s \
     where s.Username = t.Username and s.Username = u.Username and u.Username = (%s)",session['Username'])
   result = cursor.fetchone()
   Context = {}
+  # Getting the output to prepare the paramters 
   Context['Username'] = session['Username']
   Context['Password'] = result[0]
   Context['RealName'] = result[1]
@@ -532,8 +570,11 @@ def MyProfiles():
   return render_template('MyProfile.html', **Context)
 
 @app.route('/Browse/<Username>')
+# Browse tutor's personal information and how other people rate him/ her
 def BrowseTutor(Username):
+  # After the user clicks the user name, the profile of the corresponding user will be displayed
   PID = Username
+  # Prepare for the drop down list
   cursor = g.conn.execute('SELECT Username from Users')
   result = cursor.fetchone()
   store = []
@@ -546,6 +587,7 @@ def BrowseTutor(Username):
   Context = {'store': store}
   cursor.close()
   args = (PID)
+  # Prepare for that user's information
   cursor = g.conn.execute("SELECT u.Username, u.RealName, u.Email, t.Score, t.NumberRate,\
     t.Skills , s.GPA\
     FROM Users u, Tutors t, Students  s \
@@ -565,6 +607,7 @@ def BrowseTutor(Username):
   Context['store2'] = store2
   cursor.close()
   store3 = []
+  # Select how other people rate this specific user
   cursor = g.conn.execute("SELECT Score, Comments, Rate_time, Studentsusername, Tutorsusername FROM Rate_by WHERE Tutorsusername = (%s) ORDER BY Rate_time DESC", args)
   document = {}
   result = cursor.fetchone()
@@ -579,11 +622,14 @@ def BrowseTutor(Username):
     result = cursor.fetchone()
   Context["store3"] = store3
   cursor.close()
+  # Display results
   return render_template('SearchProfile.html', **Context)
 
 @app.route('/profileCheck', methods = ['POST'])
 def ProfileCheck():
+  # this profile check for profile update 
   try:
+    # take inputs to prepare parameters
     Username = session['Username']
     Password = request.form['passwordInput']
     RealName = request.form['realnameInput']
@@ -598,17 +644,19 @@ def ProfileCheck():
     argsTutors = (Skills, Username)
     argsStudents = (float(GPA), Username)
 
+    # update all three tables related to this user
     g.conn.execute('UPDATE Users SET Password = (%s), RealName = (%s), Email = (%s), PhoneNumber= (%s), RoutingNumber=(%s), BankAccount=(%s), AccountType=(%s) WHERE Username = (%s)', argsUsers)
     g.conn.execute('UPDATE Tutors SET Skills = (%s) WHERE Username = (%s)', argsTutors)
     g.conn.execute('UPDATE Students SET GPA =(%s) WHERE Username = (%s)',argsStudents)
 
-  except Exception as e:
-    context = {'message':e}
-    return render_template('dashboard.html', **context)
+    # create notification message
+    argsNotification = ("You just updated your profile!", Username)
+    g.conn.execute('INSERT INTO NotificationBoxes_access (time, content, username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', argsNotification)
+    context = {'message': 'Successsful update!'}
 
-  argsNotification = ("You just updated your profile!", Username)
-  g.conn.execute('INSERT INTO NotificationBoxes_access (time, content, username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', argsNotification)
-  context = {'message': 'Successsful update!'}
+  except Exception as e:
+    context = {'message':"Please check your input!"}
+    return render_template('dashboard.html', **context)
   return render_template('dashboard.html', **context)
 
 @app.route('/VIP')
@@ -641,13 +689,14 @@ def VIPCheck():
     argsNotification = ("You are a VIP member! Hope you enjoy it!", session['Username'])
     g.conn.execute('INSERT INTO NotificationBoxes_access (time, content, username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', argsNotification)
   except Exception as e:
-    context = {'message':e} 
-    return render_template('VIP.html', **context)
+    context = {'message':"Please check your input!"} 
+    return render_template('dashboard.html', **context)
   context = {'message':"Congrats!You are a VIP now!"} 
-  return render_template('Dashboard.html', **context)
+  return render_template('dashboard.html', **context)
 
 @app.route('/Rating')
 def Rating():
+  # Fetch all the tutors who taught this user before
   cursor = g.conn.execute("SELECT A.Username FROM Orders_manage_link O, Adertisements_manage_associate A \
     WHERE O.AdID = A.AdID AND O.Status = 'SessionEnd' AND O.Username = (%s)", session['Username'])
   result = cursor.fetchone()
@@ -678,56 +727,71 @@ def Rating():
   return render_template("rating.html", **Context)
 
 @app.route('/RatingSubmit', methods=["POST", "GET"])
+# insert or update the rating and also update tutor's score and NumberRate
 def RatingSubmit():
-  ScoreInput = request.form['ScoreInput']
-  Comments = request.form['CommentsInput']
-  Tutors = request.form['tutorsInput']
-  args = (session['Username'], Tutors)
-  cursor = g.conn.execute("SELECT Score FROM Rate_by WHERE Studentsusername = (%s) AND Tutorsusername = (%s)", args)
-  result = cursor.fetchone()
-  # No exist, insert
-  if result == None:
-    args = [ScoreInput, Comments, session['Username'], Tutors]
-    g.conn.execute("INSERT INTO Rate_by VALUES (%s,%s,now() AT TIME ZONE \'EST\', %s, %s)", args)
-  # If exist, update
-  else:
-    args = [ScoreInput, Comments, session['Username'], Tutors]
-    g.conn.execute("UPDATE Rate_by SET Score = (%s), Comments = (%s), Rate_time = now() AT TIME ZONE \'EST\' WHERE \
-      Studentsusername = (%s) AND Tutorsusername = (%s)", args)
-  # Just need to fix average score.
-  cursor = g.conn.execute("SELECT Score FROM Rate_by WHERE Tutorsusername = (%s)", Tutors)
-  result = cursor.fetchone()
-  sumofScore = 0
-  count = 0
-  while result != None:
-    sumofScore += int(result[0])
-    count += 1
+  try:
+    # taking user input and prepare parameters
+    ScoreInput = request.form['ScoreInput']
+    Comments = request.form['CommentsInput']
+    Tutors = request.form['tutorsInput']
+    args = (session['Username'], Tutors)
+    # Checking the existence of the rating
+    cursor = g.conn.execute("SELECT Score FROM Rate_by WHERE Studentsusername = (%s) AND Tutorsusername = (%s)", args)
     result = cursor.fetchone()
-  averageScore = sumofScore / count
-  totalrate = count
-  args = [averageScore, totalrate, Tutors]
-  g.conn.execute("UPDATE Tutors SET Score = (%s), NumberRate = (%s) WHERE Username = (%s)", args)
-
-  cursor = g.conn.execute('SELECT Username FROM Tutors ORDER BY Score DESC LIMIT 5')
-  result = cursor.fetchone()
-  Context = {}
-  store = []
-  document = {}
-  Context['message']= 'Thanks for your rating. Here are the five top rated tutors we recommended to you if you want to register another session.'
-  if result is None:
-    Context['message']= 'No Available Tutors!'
-  else:
+    # No exist, insert
+    if result == None:
+      args = [ScoreInput, Comments, session['Username'], Tutors]
+      g.conn.execute("INSERT INTO Rate_by VALUES (%s,%s,now() AT TIME ZONE \'EST\', %s, %s)", args)
+    # If exist, update
+    else:
+      args = [ScoreInput, Comments, session['Username'], Tutors]
+      g.conn.execute("UPDATE Rate_by SET Score = (%s), Comments = (%s), Rate_time = now() AT TIME ZONE \'EST\' WHERE \
+        Studentsusername = (%s) AND Tutorsusername = (%s)", args)
+    # Computing average score and count records for the specific tutor
+    cursor = g.conn.execute("SELECT Score FROM Rate_by WHERE Tutorsusername = (%s)", Tutors)
+    result = cursor.fetchone()
+    sumofScore = 0
+    count = 0
     while result != None:
-      document['Username'] = result[0]
-      store.append(document)
+      sumofScore += int(result[0])
+      count += 1
       result = cursor.fetchone()
-      document = {}
-  Context['store'] = store
-  cursor.close()
+    # average score computation
+    averageScore = sumofScore / count
+    totalrate = count
+    args = [averageScore, totalrate, Tutors]
+    # Update corresponding information of specific tutor
+    g.conn.execute("UPDATE Tutors SET Score = (%s), NumberRate = (%s) WHERE Username = (%s)", args)
+    # Display top 5 best tutors
+    cursor = g.conn.execute('SELECT Username FROM Tutors ORDER BY Score DESC LIMIT 5')
+    result = cursor.fetchone()
+    Context = {}
+    store = []
+    document = {}
+    # Prepare for message
+    Context['message']= 'Thanks for your rating. Here are the five top rated tutors we recommended to you if you want to register another session.'
+    # Not exist
+    if result == None:
+      Context['message']= 'No Available Tutors!'
+    # If exist
+    else:
+      while result != None:
+        document['Username'] = result[0]
+        store.append(document)
+        result = cursor.fetchone()
+        document = {}
+    Context['store'] = store
+    cursor.close()
+  # Exception handler
+  except Exception as e:
+    Context1 = {'message':'Please check your input'}
+    return render_template('dashboard.html', **Context1)
   return render_template('topfive.html', **Context)
 
 @app.route('/SearchProfile', methods=["POST", "GET"])
+# Prepare for the user profile searching
 def SearchProfile():
+  # Fetching all usernames
   cursor = g.conn.execute('SELECT Username from Users')
   result = cursor.fetchone()
   store = []
@@ -739,11 +803,15 @@ def SearchProfile():
     result = cursor.fetchone()
   Context = {'store': store}
   cursor.close()
+  # Display results
   return render_template('SearchProfile.html', **Context)
 
 @app.route('/profile', methods=["POST", "GET"])
+# Fetch user profile of a user
 def retrieveProfile():
+  # Parameter preparation
   PID = request.form['DUsersInput']
+  # Prepare for the drop down list
   cursor = g.conn.execute('SELECT Username from Users')
   result = cursor.fetchone()
   store = []
@@ -756,6 +824,7 @@ def retrieveProfile():
   Context = {'store': store}
   cursor.close()
   args = (PID)
+  # Fetch user profile of a user
   cursor = g.conn.execute("SELECT u.Username, u.RealName, u.Email, t.Score, t.NumberRate,\
     t.Skills , s.GPA\
     FROM Users u, Tutors t, Students  s \
@@ -775,6 +844,7 @@ def retrieveProfile():
   Context['store2'] = store2
   cursor.close()
   store3 = []
+  # Fetch how other people rate this him/ her
   cursor = g.conn.execute("SELECT Score, Comments, Rate_time, Studentsusername, Tutorsusername FROM Rate_by WHERE Tutorsusername = (%s) ORDER BY Rate_time DESC", args)
   document = {}
   result = cursor.fetchone()
@@ -789,12 +859,16 @@ def retrieveProfile():
     result = cursor.fetchone()
   Context["store3"] = store3
   cursor.close()
+  # Display results
   return render_template('SearchProfile.html', **Context)
 
 #activeSessions
+# Display all unexpired advertisements under a specific department
 @app.route('/activeSessions', methods=["POST", "GET"])
 def activeSessions():
+  # Parameter preparation
   DID = request.form['DeptsInput']
+  # Prepare for the drop down list
   cursor = g.conn.execute('SELECT DepartmentID, DepartmentName from Departments')
   result = cursor.fetchone()
   store = []
@@ -808,14 +882,17 @@ def activeSessions():
   Context = {'store': store}
   cursor.close()
   args = (DID)
+  # Obtain all unexpired advertisements under a specific department
   cursor = g.conn.execute('SELECT AD.AdID, AD.Location, AD.AppointmentTime, AD.AvailableSeats, AD.Price, AD.Comments, AD.Username, D.DepartmentName, C.CourseName, C.CoureDescription \
     FROM Adertisements_manage_associate AD, Departments D, Courses_belongs C WHERE AD.DepartmentID = D.DepartmentID  AND AD.CourseID = C.CourseID AND \
     AD.DepartmentID = C.DepartmentID AND AppointmentTime >= now() AT TIME ZONE \'EST\' AND D.DepartmentID = (%s)', args)
   result = cursor.fetchone()
   store2 = []
   document = {}
+  # If no result
   if result is None:
     Context['message']= 'No Available Sessions!'
+  # If results exist
   else:
     while result != None:
       document['AdID'] = result[0]
@@ -833,11 +910,14 @@ def activeSessions():
       result = cursor.fetchone()
   Context['store2'] = store2
   cursor.close()
+  # Display results
   return render_template('searchdepartment.html', **Context)
 
 
 @app.route('/Notification', methods=["POST", "GET"])
+# Fetch notifications for user
 def Notification():
+  # Notifications fetching
   cursor = g.conn.execute('SELECT n.Time, n.Content from NotificationBoxes_access n where n.Username = (%s)',session['Username'])
   result = cursor.fetchone()
   store = []
@@ -850,12 +930,15 @@ def Notification():
     result = cursor.fetchone()
   Context = {'store': store}
   cursor.close()
+  # Return and display results
   return render_template('Notification.html', **Context)
 
 
 
 @app.route('/searchdepartment', methods=["POST", "GET"])
+# Prepare for search advertisements under a specific department
 def searchdepartment():
+  # Prepare the drop down menu
   cursor = g.conn.execute('SELECT DepartmentID, DepartmentName from Departments')
   result = cursor.fetchone()
   store = []
@@ -868,10 +951,13 @@ def searchdepartment():
     result = cursor.fetchone()
   Context = {'store': store}
   cursor.close()
+  # Display results
   return render_template('searchdepartment.html', **Context)
 
 @app.route('/searchtutors', methods=["POST", "GET"])
+# Prepare for search advertisements under a specific tutor
 def searchtutors():
+  # Prepare the drop down menu
   cursor = g.conn.execute('SELECT Username from Tutors')
   result = cursor.fetchone()
   store = []
@@ -883,10 +969,13 @@ def searchtutors():
     result = cursor.fetchone()
   Context = {'store': store}
   cursor.close()
+  # Display results
   return render_template('searchtutors.html', **Context)
 
 @app.route('/searchcourses', methods=["POST", "GET"])
+# Prepare for search advertisements under a specific course
 def searchcourses():
+  # Prepare the drop down menu
   cursor = g.conn.execute('SELECT CourseName, CourseID, DepartmentID  FROM Courses_belongs')
   result = cursor.fetchone()
   store = []
@@ -900,14 +989,19 @@ def searchcourses():
     result = cursor.fetchone()
   Context = {'store': store}
   cursor.close()
+  # Display the result
   return render_template('searchcourses.html', **Context)
 
 #activeSessions
+# Return all unexpired advertisements related to user-selected course
 @app.route('/activeSessionsCourse', methods=["POST", "GET"])
 def activeSessionsCourse():
+  # Prepare for the parameters
   DCID = request.form['courseInput'].split('/')
+  # DID: departmentID, CID: courseID
   DID = DCID[0]
   CID = DCID[1]
+  # Prepare for the drop down list
   cursor = g.conn.execute('SELECT CourseName, CourseID, DepartmentID FROM Courses_belongs')
   result = cursor.fetchone()
   store = []
@@ -922,14 +1016,17 @@ def activeSessionsCourse():
   Context = {'store': store}
   cursor.close()
   args = (CID, DID)
+  # Obtain all unexpired advertisements related to user-selected course
   cursor = g.conn.execute('SELECT AD.AdID, AD.Location, AD.AppointmentTime, AD.AvailableSeats, AD.Price, AD.Comments, AD.Username, D.DepartmentName, C.CourseName, C.CoureDescription \
     FROM Adertisements_manage_associate AD, Departments D, Courses_belongs C WHERE AD.DepartmentID = D.DepartmentID  AND AD.CourseID = C.CourseID AND \
     AD.DepartmentID = C.DepartmentID AND C.CourseID = (%s) AND AppointmentTime > now() AT TIME ZONE \'EST\' AND D.DepartmentID = (%s)', args)
   result = cursor.fetchone()
   store2 = []
   document = {}
+  # If no session under that course
   if result is None:
     Context['message']= 'No Available Sessions!'
+  # If there are sessions
   else:
     while result != None:
       document['AdID'] = result[0]
@@ -947,12 +1044,15 @@ def activeSessionsCourse():
       result = cursor.fetchone()
   Context['store2'] = store2
   cursor.close()
+  # Results display
   return render_template('searchcourses.html', **Context)
 
 #activeSessions
+# This function will return all unexpired sessions related to specific tutor
 @app.route('/activeSessionsTutors', methods=["POST", "GET"])
 def activeSessionsTutors():
   TID = request.form['tutorInput']
+  # Prepare for the drop down box
   cursor = g.conn.execute('SELECT Username from Tutors')
   result = cursor.fetchone()
   store = []
@@ -964,6 +1064,7 @@ def activeSessionsTutors():
     result = cursor.fetchone()
   Context = {'store': store}
   cursor.close()
+  # Prepare for the all unexpired advertisements related to the selected tutor
   args = (TID)
   cursor = g.conn.execute('SELECT AD.AdID, AD.Location, AD.AppointmentTime, AD.AvailableSeats, AD.Price, AD.Comments, AD.Username, D.DepartmentName, C.CourseName, C.CoureDescription \
     FROM Adertisements_manage_associate AD, Departments D, Courses_belongs C WHERE AD.DepartmentID = D.DepartmentID  AND AD.CourseID = C.CourseID AND \
@@ -971,8 +1072,10 @@ def activeSessionsTutors():
   result = cursor.fetchone()
   store2 = []
   document = {}
+  # If no advertisements exist
   if result is None:
     Context['message']= 'No Available Sessions!'
+  # If he/ she has advertisements
   else:
     while result != None:
       document['AdID'] = result[0]
@@ -988,23 +1091,11 @@ def activeSessionsTutors():
       store2.append(document)
       document = {}
       result = cursor.fetchone()
+  # Prepare for parameter
   Context['store2'] = store2
   cursor.close()
   return render_template('searchtutors.html', **Context)
 
-# Example of adding new data to the database
-'''
-@app.route('/add', methods=['POST'])
-def add():
-  name = request.form['name']
-  g.conn.execute('INSERT INTO test(name) VALUES (%s)', name)
-  return redirect('/')
-
-@app.route('/login')
-def login():
-    abort(401)
-    this_is_never_executed()
-'''
 
 if __name__ == "__main__":
   import click

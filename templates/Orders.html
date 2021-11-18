@@ -87,6 +87,7 @@
     <div class="messageBox">
         {{message}}
     </div>
+    <!-- display orders' information-->
     <table>
         <tr>
             <th>Order ID</th>
@@ -117,6 +118,7 @@
                 <td>{{r.Comments}}</td>
                 <td>{{r.CourseName}}</td>  
                 <td>{{r.DepartmentName}}</td>
+                <!--Only can cancel unexpired order-->
                 {% if r.Status == "Placed" %}
                 <td>
                     <a href="/OrderCancelling/{{r.OrderID}}">

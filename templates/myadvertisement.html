@@ -79,7 +79,7 @@
       <li><a href="/Notification">Notification Box</a></li>
       <li><a href="/Logout">Log Out</a></li>
     </ul>
-    
+
     <!-- Can view all advertisements but only can modify unexpired advertisements-->
     <table>
         <tr>
@@ -117,11 +117,8 @@
             </tr>
         {% endfor %}
     </table>
+    <!--Used for new advertisment insertion-->
     <form method="POST" action="/newAdInsertion">
-        <!-- <div>
-            <label for="Username">Username:</label>
-            <input type="text" id="Username" name="usernameInput" maxlength="20" required>
-        </div> -->
         <div>
             <label for="Location">Location:</label>
             <input type="text" id="Location" name="LocationInput" maxlength="250" required>

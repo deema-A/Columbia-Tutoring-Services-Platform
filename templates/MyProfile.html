@@ -83,6 +83,7 @@
     <div class="messageBox">
       {{message}}
     </div>
+    <!-- Display the current user profile -->
     <table>
       <tr>
         <th>User Name</th>
@@ -114,7 +115,7 @@
       </tr>
     </table>
     <!-- Use required to satisfy not null condition in SQL schema -->
-    <!-- registrationCheck page is just used for checking and inserting valid inputs into database and redirect to the user Dashboard -->
+    <!-- Used for user profile update -->
     <form method="POST" action="/profileCheck">
       <div>
         <label for="Password">Password:</label>
