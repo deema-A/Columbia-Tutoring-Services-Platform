@@ -90,12 +90,15 @@
 
     <!-- User can enroll in VIP program for some period of time-->
     <form method="POST" action="/VIPCheck">
+      <div>
             <label for="endvip">This VIP membership valid untill:</label>
 
             <input type="date" id="endvip" name="endvip"
                    min="<?= date('Y-m-d'); ?>" required>
 
             <input type="submit" value="Join!">
+      </div>
+
     </form>
         
        
