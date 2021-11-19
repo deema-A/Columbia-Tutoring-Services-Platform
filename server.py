@@ -268,6 +268,7 @@ def OrderPlacing(AdID, Username, Price):
     return render_template('dashboard.html', **Context)
   # If it does not exist 
   # check if the current user enrolled in a VIP membership if so they will be offered 20% discount 
+  cursor.close()
   cursor = g.conn.execute("SELECT VIPID FROM VIPs_Enroll WHERE EndDate >= now() AT TIME ZONE \'EST\' AND Username = %s", session["Username"])
   result = cursor.fetchone()
   if result == None:
@@ -275,6 +276,7 @@ def OrderPlacing(AdID, Username, Price):
   else:
     Context['Price'] = float(Price) * 0.8
   Context['AdID'] = AdID
+  cursor.close()
   return render_template('checkout.html', **Context)
 
 @app.route('/checkout/<AdID>/<Price>')
@@ -312,6 +314,7 @@ def MyOrder():
     result = cursor.fetchone()
   args = (session['Username'])
   # obtaining the orders' information related to the current user 
+  cursor.close()
   cursor = g.conn.execute('SELECT o.OrderID, o.OrderTime, o.Total, o.Status, o.UpdateTime, o.AdID,\
     a.Username tutorUsername, a.Location, a.AppointmentTime, a.Comments, c.CourseName, d.DepartmentName\
     FROM Orders_manage_link o,  Adertisements_manage_associate a, Courses_belongs c, Departments d\
@@ -466,6 +469,7 @@ def AdDelete(AdID):
   # sent a notification to the current user
   g.conn.execute('INSERT INTO NotificationBoxes_access (Time, Content, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
   Context = {'message':'Advertisement deleted Successfully'}
+  cursor.close()
   return render_template('dashboard.html', **Context)
 
 
@@ -542,6 +546,7 @@ def AdUpdateCheck():
   except Exception as e:
     Context = {'message': "Please check your input!"}
     return render_template('dashboard.html', **Context)
+  cursor.close()
   return render_template('dashboard.html', **Context)
 
 @app.route('/MyProfile')
@@ -566,7 +571,7 @@ def MyProfiles():
   Context['NumberRate'] = result[8]
   Context['Skills'] = result[9]
   Context['GPA'] = result[10]
-
+  cursor.close()
   return render_template('MyProfile.html', **Context)
 
 @app.route('/Browse/<Username>')
@@ -748,6 +753,7 @@ def RatingSubmit():
       g.conn.execute("UPDATE Rate_by SET Score = (%s), Comments = (%s), Rate_time = now() AT TIME ZONE \'EST\' WHERE \
         Studentsusername = (%s) AND Tutorsusername = (%s)", args)
     # Computing average score and count records for the specific tutor
+    cursor.close()
     cursor = g.conn.execute("SELECT Score FROM Rate_by WHERE Tutorsusername = (%s)", Tutors)
     result = cursor.fetchone()
     sumofScore = 0
@@ -763,6 +769,7 @@ def RatingSubmit():
     # Update corresponding information of specific tutor
     g.conn.execute("UPDATE Tutors SET Score = (%s), NumberRate = (%s) WHERE Username = (%s)", args)
     # Display top 5 best tutors
+    cursor.close()
     cursor = g.conn.execute('SELECT Username FROM Tutors ORDER BY Score DESC LIMIT 5')
     result = cursor.fetchone()
     Context = {}
