@@ -688,7 +688,7 @@ def VIPCheck():
       g.conn.execute('INSERT INTO VIPs_Enroll(StartDate, EndDate, Username) VALUES (now() AT TIME ZONE \'EST\', %s, %s)', args)
     #Case 2: if there is exist a record for that user, only the end date will be updated
     else:
-      g.conn.execute('UPDATE VIPs_Enroll SET EndDate = (%s) WHERE Username =  (%s)', args)
+      g.conn.execute('UPDATE VIPs_Enroll SET StartDate = now() AT TIME ZONE \'EST\', EndDate = (%s) WHERE Username = (%s)', args)
 
     #send Notification to the user
     argsNotification = ("You are a VIP member! Hope you enjoy it!", session['Username'])
